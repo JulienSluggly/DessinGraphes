@@ -1,0 +1,19 @@
+{ "nodes": [
+    { "id": 0, "x": 1, "y": 0 },
+    { "id": 1, "x": 0, "y": 2 },
+    { "id": 2, "x": 2, "y": 2 },
+    { "id": 3, "x": 1, "y": 4 }],
+  "edges": [
+    { "source": 0, "target": 1 },
+    { "source": 0, "target": 2 },
+    { "source": 1, "target": 2 },
+    { "source": 1, "target": 3,
+        "bends": [
+          { "x": 0, "y": 4 }]},
+    { "source": 2, "target": 3,
+        "bends": [
+         { "x": 2, "y": 3 },
+         { "x": 1, "y": 3 }]}],
+  "width": 2,
+  "height": 4,
+  "bends": 2 }
