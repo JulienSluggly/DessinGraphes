@@ -1,0 +1,183 @@
+{
+  "nodes": [
+    {
+      "id": 0,
+      "x": 17,
+      "y": 8
+    },
+    {
+      "id": 1,
+      "x": 5,
+      "y": 5
+    },
+    {
+      "id": 2,
+      "x": 11,
+      "y": 8
+    },
+    {
+      "id": 3,
+      "x": 8,
+      "y": 8
+    },
+    {
+      "id": 4,
+      "x": 17,
+      "y": 5
+    },
+    {
+      "id": 5,
+      "x": 11,
+      "y": 5
+    },
+    {
+      "id": 6,
+      "x": 14,
+      "y": 5
+    },
+    {
+      "id": 7,
+      "x": 14,
+      "y": 8
+    },
+    {
+      "id": 8,
+      "x": 8,
+      "y": 5
+    },
+    {
+      "id": 9,
+      "x": 5,
+      "y": 8
+    }
+  ],
+  "edges": [
+    {
+      "source": 2,
+      "target": 8,
+      "bends": [
+        {
+          "x": 3,
+          "y": 10
+        },
+        {
+          "x": 3,
+          "y": 3
+        }
+      ]
+    },
+    {
+      "source": 9,
+      "target": 1
+    },
+    {
+      "source": 7,
+      "target": 6
+    },
+    {
+      "source": 4,
+      "target": 7
+    },
+    {
+      "source": 8,
+      "target": 1
+    },
+    {
+      "source": 6,
+      "target": 2
+    },
+    {
+      "source": 2,
+      "target": 5
+    },
+    {
+      "source": 0,
+      "target": 6,
+      "bends": [
+        {
+          "x": 1,
+          "y": 12
+        },
+        {
+          "x": 1,
+          "y": 1
+        }
+      ]
+    },
+    {
+      "source": 7,
+      "target": 5,
+      "bends": [
+        {
+          "x": 2,
+          "y": 11
+        },
+        {
+          "x": 2,
+          "y": 2
+        }
+      ]
+    },
+    {
+      "source": 8,
+      "target": 9
+    },
+    {
+      "source": 5,
+      "target": 3
+    },
+    {
+      "source": 3,
+      "target": 9
+    },
+    {
+      "source": 2,
+      "target": 3
+    },
+    {
+      "source": 5,
+      "target": 8
+    },
+    {
+      "source": 7,
+      "target": 2
+    },
+    {
+      "source": 6,
+      "target": 5
+    },
+    {
+      "source": 3,
+      "target": 8
+    },
+    {
+      "source": 4,
+      "target": 6
+    },
+    {
+      "source": 0,
+      "target": 7
+    },
+    {
+      "source": 3,
+      "target": 1,
+      "bends": [
+        {
+          "x": 4,
+          "y": 9
+        },
+        {
+          "x": 4,
+          "y": 4
+        }
+      ]
+    },
+    {
+      "source": 0,
+      "target": 4
+    }
+  ],
+  "width": 18,
+  "height": 13,
+  "bends": 2
+}

@@ -31,6 +31,7 @@ bool move_nodebend = false;
 bool move_randomly = false;
 bool show_move_variance = false;
 bool show_variance = false;
+bool show_segments = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -176,6 +177,9 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_KP_2:
 			autoShortest = !autoShortest;
 			break;
+		case GLFW_KEY_KP_3:
+			show_segments = true;
+			break;
 		}
 }
 
@@ -282,7 +286,8 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			show_variance = false;
 		}
 		else if (moveRouletteRusse) {
-			selectedNodeBendNum = startRouletteRusse(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			specificRouletteRusse(selectedNodeBendNum, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			//selectedNodeBendNum = startRouletteRusse(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			moveRouletteRusse = false;
 		}
 		else if (autoRouletteRusse) {
@@ -354,6 +359,13 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			}
 			checkTime(start, lastWritten, 10, variance, false);
 			checkTour(totalTurn, lastWrittenTurn, 20000, variance, false);
+		}
+		else if (show_segments) {
+			std::cout << "Affichage des Segments adjacents du NodeBend: " << selectedNodeBendNum << std::endl;
+			for (int i = 0; i < vectorNodeBends[selectedNodeBendNum].adjFaceSegment.size(); i++) {
+				std::cout << "Segment: " << i << " x1: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].sourceX << " y1: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].sourceY << " x2: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].targetX << " y2: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].targetY << std::endl;
+			}
+			show_segments = false;
 		}
 		//afficher les edge
 		glColor3f(1.0f, 1.0f, 1.0f);

@@ -4,13 +4,18 @@
 
 class Segment {
 public:
-	int sourceX, sourceY;
-	int targetX, targetY;
-	Segment(int srcx, int srcy, int trgx, int trgy) {
+	int* sourceX;
+	int* sourceY;
+	int* targetX;
+	int* targetY;
+	Segment(int* srcx, int* srcy, int* trgx, int* trgy) {
 		sourceX = srcx;
 		sourceY = srcy;
 		targetX = trgx;
 		targetY = trgy;
+	}
+	bool isNull() {
+		return ((*sourceX == *targetX) && (*sourceY == *targetY));
 	}
 };
 
@@ -45,7 +50,7 @@ int aGaucheInt(int sx, int sy, int tx, int ty, int cx, int cy) {
 
 // Renvoie vrai si c est dans le rectangle formé par st
 bool dansRectangle(int sx,int sy,int tx,int ty,int cx,int cy) {
-	return (cx <= max(sx, tx) && cx >= min(sx, tx) && cy <= max(sy, ty) && cy >= min(sy, ty));
+	return (cx <= std::max(sx, tx) && cx >= std::min(sx, tx) && cy <= std::max(sy, ty) && cy >= std::min(sy, ty));
 }
 
 // Renvoie vrai si c est sur le segment st

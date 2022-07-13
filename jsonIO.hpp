@@ -22,6 +22,10 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
     gridWidth = j["width"];
     gridHeight = j["height"];
     maxBends = j["bends"];
+
+    // BOOLEEN A CHANGER POUR AJOUTER LE MAXIMUM DE BENDS A CHAQUE EDGE
+    bool setMaxBends = true;
+
     // Remplissage de mapPosNode
     for (int i = 0; i <= gridHeight; i++) {
         std::vector<bool> tmpVector;
@@ -74,7 +78,8 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
         if (j["edges"][i]["bends"] != nullptr) {
             IPolyline& p = GL.bends(edgeTab[i]);
             int bendsNumber = static_cast<int>(j["edges"][i]["bends"].size());
-            for (int k = 0; k < bendsNumber; k++) {
+            int k = 0;
+            for (; k < bendsNumber; k++) {
                 int bendX = j["edges"][i]["bends"][k]["x"];
                 int bendY = j["edges"][i]["bends"][k]["y"];
                 p.pushBack(IPoint(bendX, bendY));
@@ -82,6 +87,22 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
                 //vectorNodeBends.push_back(tmpNodeBend);
                 // On ajoute les bends dans la nodemap:
                 mapPosNode[bendY][bendX] = true;
+            }
+            // ON AJOUTE LES BENDS SUPPLEMENTAIRE SUR LE NODE TARGET A LA FIN DES BENDS ORIGINAUX
+            if (setMaxBends) {
+                int bendX = GL.x(nodeTab[j["edges"][i]["target"]]);
+                int bendY = GL.y(nodeTab[j["edges"][i]["target"]]);
+                for (; k < maxBends; k++) {
+                    p.pushBack(IPoint(bendX, bendY));
+                }
+            }
+        }
+        else if (setMaxBends) {
+            IPolyline& p = GL.bends(edgeTab[i]);
+            int bendX = GL.x(nodeTab[j["edges"][i]["target"]]);
+            int bendY = GL.y(nodeTab[j["edges"][i]["target"]]);
+            for (int k=0; k < maxBends; k++) {
+                p.pushBack(IPoint(bendX, bendY));
             }
         }
         //recuperer longueur edge
