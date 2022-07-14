@@ -2,12 +2,16 @@
 #define GEOMETRIE_HPP
 #include <algorithm>
 
+class NodeBend;
+
 class Segment {
 public:
 	int* sourceX;
 	int* sourceY;
 	int* targetX;
 	int* targetY;
+	NodeBend* source = nullptr;
+	NodeBend* target = nullptr;
 	Segment(int* srcx, int* srcy, int* trgx, int* trgy) {
 		sourceX = srcx;
 		sourceY = srcy;
@@ -16,6 +20,12 @@ public:
 	}
 	bool isNull() {
 		return ((*sourceX == *targetX) && (*sourceY == *targetY));
+	}
+	void setSource(NodeBend* nb) {
+		source = nb;
+	}
+	void setTarget(NodeBend* nb) {
+		target = nb;
 	}
 };
 

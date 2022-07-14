@@ -26,7 +26,7 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/exemples/exemple13.json";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-1.json";
 	std::cout << "File: " << file << std::endl;
 	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
 	writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
@@ -72,7 +72,7 @@ int main() {
 	// Ajout des node dans le vector
 	node n = G.firstNode();
 	while (n != nullptr) {
-		NodeBend tmpNodeBend(n, GL);
+		NodeBend* tmpNodeBend = new NodeBend(n, GL);
 		vectorNodeBends.push_back(tmpNodeBend);
 		n = n->succ();
 	}
@@ -116,64 +116,79 @@ int main() {
 			if (!i.valid()) {
 				tmpNodeBend->suivant = p2;
 			}
-			vectorNodeBends.push_back(*tmpNodeBend);
-			precedent = &vectorNodeBends.back();
+			precedent = tmpNodeBend;
+			vectorNodeBends.push_back(tmpNodeBend);
 		}
 		e = e->succ();
+	}
+
+	// Assign du num global et du tableau de position
+	for (int i = 0; i < vectorNodeBends.size(); i++) {
+		vectorNodeBends[i]->assignGlobalNum(i);
+		posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].insert(vectorNodeBends[i]);
 	}
 
 	// On initialise le tableau de segment de chaque nodebend
 	ConstCombinatorialEmbedding CCE{G};
 	int* srcX, *srcY, *trgX, *trgY;
 	std::set<edge> edgeSet;
-	std::cout << "Remplissage du tableau: --------------------------------" << std::endl;
+	//std::cout << "Remplissage du tableau: --------------------------------" << std::endl;
+	NodeBend* source = nullptr;
+	NodeBend* target = nullptr;
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
-		vectorNodeBends[i].assignGlobalNum(i);
 		edgeSet.clear();
 		edgeSet = getEdgesFromAdjFacesFromNodeBend(vectorNodeBends[i],CCE);
 		for (auto it = edgeSet.begin();it != edgeSet.end();it++) {
 			srcX = &GL.x((*it)->source());
 			srcY = &GL.y((*it)->source());
+			source = getNodeBendFromNode((*it)->source());
 			IPolyline& p = GL.bends((*it));
 			// Si l'edge contient des bends
 			if (p.size() > 0) {
-				auto it = p.begin();
-				while (it.valid()) {
-					trgX = &(*it).m_x;
-					trgY = &(*it).m_y;
+				auto it2 = p.begin();
+				while (it2.valid()) {
+					trgX = &(*it2).m_x;
+					trgY = &(*it2).m_y;
+					target = getNodeBendFromBend(&(*it2));
 					Segment tmpSeg(srcX, srcY, trgX, trgY);
-					vectorNodeBends[i].addAdjFaceSegment(tmpSeg);
+					tmpSeg.setSource(source);
+					tmpSeg.setTarget(target);
+					vectorNodeBends[i]->addAdjFaceSegment(tmpSeg);
 					srcX = trgX;
 					srcY = trgY;
-					it++;
+					it2++;
+					source = target;
 				}
 			}
+			target = getNodeBendFromNode((*it)->target());
 			trgX = &GL.x((*it)->target());
 			trgY = &GL.y((*it)->target());
 			Segment tmpSeg(srcX, srcY, trgX, trgY);
-			vectorNodeBends[i].addAdjFaceSegment(tmpSeg);
+			tmpSeg.setSource(source);
+			tmpSeg.setTarget(target);
+			vectorNodeBends[i]->addAdjFaceSegment(tmpSeg);
 		}
-		std::cout << "Numero: " << i << " Taille tableau: " << vectorNodeBends[i].adjFaceSegment.size() << std::endl;
-		if (vectorNodeBends[i].isNode) {
+		//std::cout << "Numero: " << i << " Taille tableau: " << vectorNodeBends[i]->adjFaceSegment.size() << std::endl;
+		if (vectorNodeBends[i]->isNode) {
 			ListPure<adjEntry> nodeAdjEntries;
-			vectorNodeBends[i].getNode()->allAdjEntries(nodeAdjEntries);
+			vectorNodeBends[i]->getNode()->allAdjEntries(nodeAdjEntries);
 			for (auto it = nodeAdjEntries.begin(); it.valid(); it++) {
 				std::vector<Segment> adjSegmentVector = getSegmentFromAdjFacesFromAdjEntry((*it), CCE, GL);
 				for (int j = 0; j < adjSegmentVector.size(); j++) {
-					vectorNodeBends[i].insertSegmentToAdjEntry((*it), adjSegmentVector[j]);
+					vectorNodeBends[i]->insertSegmentToAdjEntry((*it), adjSegmentVector[j]);
 				}
 			}
 		}
 	}
-	std::cout << "FIN Remplissage du tableau: --------------------------------" << std::endl;
-
+	//std::cout << "FIN Remplissage du tableau: --------------------------------" << std::endl;
+	
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
-		std::cout << "Numero: " << i << " GlobalNum: " << vectorNodeBends[i].globalNum << " isNode: " << vectorNodeBends[i].isNode;
-		if (!vectorNodeBends[i].isNode) {
-			std::cout << " precedent: " << vectorNodeBends[i].precedent->globalNum << " suivant: " << vectorNodeBends[i].suivant->globalNum;
+		std::cout << "Numero: " << i << " GlobalNum: " << vectorNodeBends[i]->globalNum << " isNode: " << vectorNodeBends[i]->isNode;
+		if (!vectorNodeBends[i]->isNode) {
+			std::cout << " precedent: " << vectorNodeBends[i]->precedent->globalNum << " suivant: " << vectorNodeBends[i]->suivant->globalNum;
 		}
-		if (!vectorNodeBends[i].isNode) {
-			std::cout << " k: " << vectorNodeBends[i].numero;
+		if (!vectorNodeBends[i]->isNode) {
+			std::cout << " k: " << vectorNodeBends[i]->numero;
 		}
 		std::cout << std::endl;
 	}
@@ -183,7 +198,7 @@ int main() {
 //	auto rng = std::default_random_engine{ rd() };
 //	std::shuffle(std::begin(vectorNodeBends), std::end(vectorNodeBends), rng);
 
-	bool useOpenGL = true;
+	bool useOpenGL = false;
 
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));
@@ -191,7 +206,7 @@ int main() {
 		dispOpenGL(G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
 	}
 	else {
-		runAlgo(2, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
+		runAlgo(10, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
 	}
 	return 0;
 }

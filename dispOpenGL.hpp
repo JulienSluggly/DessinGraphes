@@ -26,12 +26,16 @@ bool autoBestVariance = false;
 bool moveRecuitSimule = false;
 bool autoRecuitSimule = false;
 bool moveRouletteRusse = false;
+bool specifiqueRouletteRusse = false;
 bool autoRouletteRusse = false;
 bool move_nodebend = false;
 bool move_randomly = false;
 bool show_move_variance = false;
 bool show_variance = false;
 bool show_segments = false;
+bool show_nodemap = false;
+bool check_stackability = false;
+bool check_posMap = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -76,8 +80,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 			// G permet de sélectionner l'adjEntry associé au noeud sélectionné
 		case GLFW_KEY_G:
-			if (vectorNodeBends[selectedNodeBendNum].isNode) {
-				selectedAdj = vectorNodeBends[selectedNodeBendNum].getNode()->firstAdj();
+			if (vectorNodeBends[selectedNodeBendNum]->isNode) {
+				selectedAdj = vectorNodeBends[selectedNodeBendNum]->getNode()->firstAdj();
 				selectedEdge = selectedAdj->theEdge();
 			}
 			break;
@@ -95,11 +99,11 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 			// Récupere les faces adjacentes et ajoute les edges qui les composent dans setEdge
 		case GLFW_KEY_P:
-			if (vectorNodeBends[selectedNodeBendNum].isNode) {
+			if (vectorNodeBends[selectedNodeBendNum]->isNode) {
 				setFace.clear();
 				setEdge.clear();
 				SListPure<edge> edges;
-				vectorNodeBends[selectedNodeBendNum].getNode()->adjEdges(edges);
+				vectorNodeBends[selectedNodeBendNum]->getNode()->adjEdges(edges);
 				for (SListConstIterator<edge> i = edges.begin(); i.valid(); i++) {
 					edge e = (*i);
 					setFace.insert(CCE.rightFace(e->adjSource()));
@@ -107,8 +111,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 				}
 			}
 			else {
-				setFace.insert(CCE.rightFace(vectorNodeBends[selectedNodeBendNum].getEdge()->adjSource()));
-				setFace.insert(CCE.leftFace(vectorNodeBends[selectedNodeBendNum].getEdge()->adjSource()));
+				setFace.insert(CCE.rightFace(vectorNodeBends[selectedNodeBendNum]->getEdge()->adjSource()));
+				setFace.insert(CCE.leftFace(vectorNodeBends[selectedNodeBendNum]->getEdge()->adjSource()));
 			}
 			for (auto it = setFace.begin(); it != setFace.end(); it++) {
 				adjEntry firstAdj = (*it)->firstAdj();
@@ -179,6 +183,18 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_KP_3:
 			show_segments = true;
+			break;
+		case GLFW_KEY_KP_4:
+			specifiqueRouletteRusse = true;
+			break;
+		case GLFW_KEY_KP_5:
+			show_nodemap = true;
+			break;
+		case GLFW_KEY_KP_6:
+			check_stackability = true;
+			break;
+		case GLFW_KEY_KP_7:
+			check_posMap = true;
 			break;
 		}
 }
@@ -267,13 +283,13 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 		}
 		// Deplacer un noeud aléatoirement
 		if (move_randomly) {
-			move(vectorNodeBends[selectedNodeBendNum], GL, dx, dy, sommeLong,sommeLong2,variance);
+			move(vectorNodeBends[selectedNodeBendNum], GL, dx, dy, sommeLong, sommeLong2, variance);
 			dx = 0;
 			dy = 0;
 			move_randomly = false;
 		}
 		else if (show_move_variance) {
-			std::vector<std::pair<int, std::pair<int, int>>> vectorProba = rouletteRusseNodeMove(vectorNodeBends[selectedNodeBendNum], GL, CCE, sommeLong, sommeLong2, variance,gridHeight,gridWidth);
+			std::vector<std::pair<int, std::pair<int, int>>> vectorProba = rouletteRusseNodeMove(vectorNodeBends[selectedNodeBendNum], GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			show_move_variance = false;
 		}
 		else if (show_variance) {
@@ -286,9 +302,12 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			show_variance = false;
 		}
 		else if (moveRouletteRusse) {
-			specificRouletteRusse(selectedNodeBendNum, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
-			//selectedNodeBendNum = startRouletteRusse(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			selectedNodeBendNum = startRouletteRusse(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			moveRouletteRusse = false;
+		}
+		else if (specifiqueRouletteRusse) {
+			specificRouletteRusse(selectedNodeBendNum, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			specifiqueRouletteRusse = false;
 		}
 		else if (autoRouletteRusse) {
 			selectedNodeBendNum = startRouletteRusse(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
@@ -296,12 +315,12 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 				bestVariance = variance;
 				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
 			}
-			checkTime(start, lastWritten, 10, variance,false);
+			checkTime(start, lastWritten, 10, variance, false);
 			checkTour(totalTurn, lastWrittenTurn, 20000, variance, false);
 		}
 		else if (moveRecuitSimule) {
 			selectedNodeBendNum = startRecuitSimule(coeff, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
-			modifCoeffRecuit(coeff,coeffDesc,coeffMont,coeffMax,coeffMin,recuitMontant,nbTour,nbTourModifCoeff);
+			modifCoeffRecuit(coeff, coeffDesc, coeffMont, coeffMax, coeffMin, recuitMontant, nbTour, nbTourModifCoeff);
 			moveRecuitSimule = false;
 		}
 		else if (autoRecuitSimule) {
@@ -312,7 +331,7 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 				bestVariance = variance;
 				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
 			}
-			checkTime(start, lastWritten,10, variance, false);
+			checkTime(start, lastWritten, 10, variance, false);
 			checkTour(totalTurn, lastWrittenTurn, 20000, variance, false);
 		}
 		else if (moveBestVariance) {
@@ -360,10 +379,36 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			checkTime(start, lastWritten, 10, variance, false);
 			checkTour(totalTurn, lastWrittenTurn, 20000, variance, false);
 		}
+		else if (check_stackability) {
+			for (int i = 0; i < vectorNodeBends.size(); i++) {
+				bool isStackable = vectorNodeBends[selectedNodeBendNum]->isStackableWith(vectorNodeBends[i]);
+				std::cout << "Node: " << selectedNodeBendNum << " stack with: " << i << " ? " << isStackable << std::endl;
+			}
+			check_stackability = false;
+		}
+		else if (check_posMap) {
+			std::set<NodeBend*> tmpSet = posVectorNodeBend[*vectorNodeBends[selectedNodeBendNum]->a_x][*vectorNodeBends[selectedNodeBendNum]->a_y];
+			std::cout << "Pos map x: " << *vectorNodeBends[selectedNodeBendNum]->a_x << " y: " << *vectorNodeBends[selectedNodeBendNum]->a_y << std::endl;
+			for (auto it = tmpSet.begin(); it != tmpSet.end(); it++) {
+				std::cout << "Node " << (*it)->globalNum << std::endl;
+			}
+			check_posMap = false;
+		}
+		else if (show_nodemap) {
+			for (int i = posVectorNodeBend.size() - 1; i >= 0; i--) {
+				for (int j = posVectorNodeBend[i].size() - 1; j >= 0; j--) {
+					std::cout << posVectorNodeBend[i][j].size() << " ";
+				}
+				std::cout << std::endl;
+			}
+			show_nodemap = false;
+		}
 		else if (show_segments) {
 			std::cout << "Affichage des Segments adjacents du NodeBend: " << selectedNodeBendNum << std::endl;
-			for (int i = 0; i < vectorNodeBends[selectedNodeBendNum].adjFaceSegment.size(); i++) {
-				std::cout << "Segment: " << i << " x1: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].sourceX << " y1: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].sourceY << " x2: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].targetX << " y2: " << *vectorNodeBends[selectedNodeBendNum].adjFaceSegment[i].targetY << std::endl;
+			for (int i = 0; i < vectorNodeBends[selectedNodeBendNum]->adjFaceSegment.size(); i++) {
+				std::cout << "Segment: " << i << " x1: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].sourceX << " y1: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].sourceY << " x2: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].targetX << " y2: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].targetY;
+				std::cout << " SourceNum: " << vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].source->globalNum << " TargetNum: " << vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].target->globalNum << "isNull:" << vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].isNull() << std::endl;
+				//std::cout << std::endl;
 			}
 			show_segments = false;
 		}
@@ -393,16 +438,22 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 		glPointSize(7);
 		glBegin(GL_POINTS);
 		for (int i = 0; i < vectorNodeBends.size(); i++) {
-			if (!vectorNodeBends[i].isNode) {
+			if (!vectorNodeBends[i]->isNode) {
 				glColor3f(1.0f, 1.0f, 1.0f);
+				glVertex2d(*vectorNodeBends[i]->a_x, *vectorNodeBends[i]->a_y);
 			}
-			else {
+		}
+		for (int i = 0; i < vectorNodeBends.size(); i++) {
+			if (vectorNodeBends[i]->isNode) {
 				glColor3f(1.0f, 0.0f, 0.0f);
+				glVertex2d(*vectorNodeBends[i]->a_x, *vectorNodeBends[i]->a_y);
 			}
+		}
+		for (int i = 0; i < vectorNodeBends.size(); i++) {
 			if (i == selectedNodeBendNum) {
 				glColor3f(0.0f, 0.0f, 1.0f);
+				glVertex2d(*vectorNodeBends[i]->a_x, *vectorNodeBends[i]->a_y);
 			}
-			glVertex2d(*vectorNodeBends[i].a_x, *vectorNodeBends[i].a_y);
 		}
 		glEnd();
 		glfwSwapBuffers(window);

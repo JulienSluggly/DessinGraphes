@@ -76,7 +76,7 @@ double calcTmpEdgeLength(const adjEntry& ad, int srcX, int srcY, const GridLayou
     return length;
 }
 
-double calcTmpEdgeLengthBends(const edge& e, NodeBend n, int bendX, int bendY, const GridLayout& GL) {
+double calcTmpEdgeLengthBends(const edge& e, NodeBend* n, int bendX, int bendY, const GridLayout& GL) {
     node source = e->source();
     node target = e->target();
     double length = 0.0;
@@ -87,7 +87,7 @@ double calcTmpEdgeLengthBends(const edge& e, NodeBend n, int bendX, int bendY, c
     if (bends.size() > 0) {
         int k = 0;
         for (ListIterator<IPoint> i = bends.begin(); i.valid(); i++,k++) {
-            if (k == n.numero) {
+            if (k == n->numero) {
                 targetX = bendX;
                 targetY = bendY;
             }
@@ -107,19 +107,19 @@ double calcTmpEdgeLengthBends(const edge& e, NodeBend n, int bendX, int bendY, c
 }
 
 // Recupere la somme des longueurs autour d'un noeud apres un déplacement
-double totalLengthAroundNodeBend(NodeBend n, GridLayout& GL, int srcX, int srcY) {
+double totalLengthAroundNodeBend(NodeBend* n, GridLayout& GL, int srcX, int srcY) {
     double totalLength = 0;
     SListPure<adjEntry> adjEntries;
-    if (n.isNode) {
-        n.getNode()->allAdjEntries(adjEntries);
+    if (n->isNode) {
+        n->getNode()->allAdjEntries(adjEntries);
     }
     else {
-        adjEntries.pushBack(n.getAdjEntry());
+        adjEntries.pushBack(n->getAdjEntry());
     }
     // Si le deplacement est aucun déplacement on récupere juste les données dans la map
-    if ((srcX != n.getX()) || (srcY != n.getY())) {
+    if ((srcX != n->getX()) || (srcY != n->getY())) {
         for (auto it = adjEntries.begin(); it.valid(); it++) {
-            if (n.isNode) {
+            if (n->isNode) {
                 totalLength += calcTmpEdgeLength((*it), srcX, srcY, GL);
             }
             else {

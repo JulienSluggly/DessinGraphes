@@ -33,6 +33,15 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
             tmpVector.push_back(false);
         }
         mapPosNode.push_back(tmpVector);
+        
+    }
+    for (int i = 0; i <= gridWidth; i++) {
+        std::vector<std::set<NodeBend*>> tmpVector2;
+        for (int j = 0; j <= gridHeight; j++) {
+            std::set<NodeBend*>tmpVector3;
+            tmpVector2.push_back(tmpVector3);
+        }
+        posVectorNodeBend.push_back(tmpVector2);
     }
     if (j["nodes"] == nullptr) {
         exit(1);

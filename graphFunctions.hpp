@@ -24,6 +24,13 @@ int generateRand(int n) {
 	return dis(gen);
 }
 
+// Enleve le nodebend du set global pour les positions
+void removeNodeBendPos(NodeBend* nb, int x, int y) {
+	auto it = posVectorNodeBend[x][y].begin();
+	it = posVectorNodeBend[x][y].find(nb);
+	posVectorNodeBend[x][y].erase(it);
+}
+
 // Renvoie un vecteur composé de tout les segments qui composent les faces adjacentes a un adjentry
 std::vector<Segment> getSegmentFromAdjFacesFromAdjEntry(adjEntry& adj, ConstCombinatorialEmbedding& ccem, GridLayout& GL) {
 	std::set<edge> setAllEdges;
@@ -72,20 +79,21 @@ std::vector<Segment> getSegmentFromAdjFacesFromAdjEntry(adjEntry& adj, ConstComb
 }
 
 // Renvoie un set composé de tout les edges qui composent les faces adjacentes a un NodeBend
-std::set<edge> getEdgesFromAdjFacesFromNodeBend(NodeBend& n, ConstCombinatorialEmbedding& ccem) {
+std::set<edge> getEdgesFromAdjFacesFromNodeBend(NodeBend* n, ConstCombinatorialEmbedding& ccem) {
 	std::set<edge> setAllEdges;
 	std::set<face> setAdjFaces;
-	if (n.isNode) {
+	if (n->isNode) {
 		SListPure<edge> edges;
-		n.getNode()->adjEdges(edges);
+		n->getNode()->adjEdges(edges);
 		for (SListConstIterator<edge> i = edges.begin(); i.valid(); i++) {
 			edge e = (*i);
 			setAdjFaces.insert(ccem.leftFace(e->adjSource()));
+			setAdjFaces.insert(ccem.rightFace(e->adjSource()));
 		}
 	}
 	else {
-		setAdjFaces.insert(ccem.rightFace(n.getEdge()->adjSource()));
-		setAdjFaces.insert(ccem.leftFace(n.getEdge()->adjSource()));
+		setAdjFaces.insert(ccem.rightFace(n->getEdge()->adjSource()));
+		setAdjFaces.insert(ccem.leftFace(n->getEdge()->adjSource()));
 	}
 	for (auto it = setAdjFaces.begin(); it != setAdjFaces.end(); it++) {
 		adjEntry firstAdj = (*it)->firstAdj();
@@ -102,6 +110,95 @@ std::set<edge> getEdgesFromAdjFacesFromNodeBend(NodeBend& n, ConstCombinatorialE
 	return setAllEdges;
 }
 
+std::vector<NodeBend*> getTargetNodeBends(NodeBend* n) {
+	std::vector<NodeBend*> bendPrecSuiv;
+	NodeBend* precedent = n->precedent;
+	bool found = false;
+	do {
+		if ((precedent->getX() != n->getX()) || (precedent->getY() != n->getY())) {
+			//std::cout << "Precedent x: " << *precedent->a_x << " y: " << *precedent->a_y << std::endl;
+			bendPrecSuiv.push_back(precedent);
+			found = true;
+		}
+		else {
+			if (precedent->isNode) {
+				found = true;
+			}
+			else {
+				precedent = precedent->precedent;
+			}
+		}
+	} while (!found);
+	NodeBend* suivant = n->suivant;
+	found = false;
+	do {
+		if ((*suivant->a_x != *n->a_x) || (*suivant->a_y != *n->a_y)) {
+			//std::cout << "Suivant x: " << *suivant->a_x << " y: " << *suivant->a_y << std::endl;
+			bendPrecSuiv.push_back(suivant);
+			found = true;
+		}
+		else {
+			if (suivant->isNode) {
+				found = true;
+			}
+			else {
+				suivant = suivant->suivant;
+			}
+		}
+	} while (!found);
+	return bendPrecSuiv;
+}
+
+// Recupere les coordonnées du points target (node ou bend) a partir d'un node source (ici contenu dans le adjEntry) et renvoie le nodebend associé
+NodeBend* getTargetCoordAndNodeBend(GridLayout& GL, const adjEntry& adj, int& trgX, int& trgY) {
+	edge tmpEdge = adj->theEdge();
+	IPolyline& p = GL.bends(tmpEdge);
+	// Si l'edge contient des bends
+	if (p.size() > 0) {
+		bool found = false;
+		// Si le noeud source est le meme, on prend le premier bend
+		if (tmpEdge->source() == adj->theNode()) {
+			auto it = p.begin();
+			while (it.valid() && !found) {
+				if (((*it).m_x != GL.x(adj->theNode())) || ((*it).m_y != GL.y(adj->theNode()))) {
+					trgX = (*it).m_x;
+					trgY = (*it).m_y;
+					found = true;
+					return getNodeBendFromBend(&(*it));
+				}
+				it++;
+			}
+		}
+		// Sinon on prend le dernier bend
+		else {
+			auto it = p.rbegin();
+			while (it.valid() && !found) {
+				if (((*it).m_x != GL.x(adj->theNode())) || ((*it).m_y != GL.y(adj->theNode()))) {
+					trgX = (*it).m_x;
+					trgY = (*it).m_y;
+					found = true;
+					return getNodeBendFromBend(&(*it));
+				}
+				it++;
+			}
+		}
+		// Si tout les bends sont stackés
+		if (!found) {
+			node tmpNode = adj->twinNode();
+			trgX = GL.x(tmpNode);
+			trgY = GL.y(tmpNode);
+			return getNodeBendFromNode(tmpNode);
+		}
+	}
+	// Si pas de bends on prends les coordonnées du noeud
+	else {
+		node tmpNode = adj->twinNode();
+		trgX = GL.x(tmpNode);
+		trgY = GL.y(tmpNode);
+		return getNodeBendFromNode(tmpNode);
+	}
+}
+
 // Recupere les coordonnées du points target (node ou bend) a partir d'un node source (ici contenu dans le adjEntry)
 void getTargetCoord(GridLayout& GL, const adjEntry& adj, int& trgX, int& trgY) {
 	edge tmpEdge = adj->theEdge();
@@ -113,7 +210,7 @@ void getTargetCoord(GridLayout& GL, const adjEntry& adj, int& trgX, int& trgY) {
 		if (tmpEdge->source() == adj->theNode()) {
 			auto it = p.begin();
 			while (it.valid() && !found) {
-				if (((*it).m_x != GL.x(tmpEdge->source())) || ((*it).m_y != GL.y(tmpEdge->source()))) {
+				if (((*it).m_x != GL.x(adj->theNode())) || ((*it).m_y != GL.y(adj->theNode()))) {
 					trgX = (*it).m_x;
 					trgY = (*it).m_y;
 					found = true;
@@ -123,14 +220,14 @@ void getTargetCoord(GridLayout& GL, const adjEntry& adj, int& trgX, int& trgY) {
 		}
 		// Sinon on prend le dernier bend
 		else {
-			auto it = p.end();
+			auto it = p.rbegin();
 			while (it.valid() && !found) {
-				if (((*it).m_x != GL.x(tmpEdge->source())) || ((*it).m_y != GL.y(tmpEdge->source()))) {
+				if (((*it).m_x != GL.x(adj->theNode())) || ((*it).m_y != GL.y(adj->theNode()))) {
 					trgX = (*it).m_x;
 					trgY = (*it).m_y;
 					found = true;
 				}
-				it--;
+				it++;
 			}
 		}
 		// Si tout les bends sont stackés
@@ -367,10 +464,10 @@ bool hasBends(adjEntry adj, GridLayout& GL) {
 }
 
 // Renvoie vrai si le noeud n ou un de ses noeuds adjacent a un ordre différent apres le déplacement du node n
-bool orderNodeAdjChanged(NodeBend nb, GridLayout& GL, int newX, int newY) {
-	if (nb.isNode) {
-		int degre = nb.getNode()->degree();
-		node n = nb.getNode();
+bool orderNodeAdjChanged(NodeBend* nb, GridLayout& GL, int newX, int newY) {
+	if (nb->isNode) {
+		int degre = nb->getNode()->degree();
+		node n = nb->getNode();
 		// On regarde l'ordre autour du noeud
 		if (degre >= 3) {
 			ListPure<adjEntry> nodeAdjEntries;
@@ -409,16 +506,16 @@ bool orderNodeAdjChanged(NodeBend nb, GridLayout& GL, int newX, int newY) {
 	}
 	// Si on est un bend on regarde si un noeud est directement adjacent ou non
 	else {
-		adjEntry adj = nb.getAdjEntry();
-		edge e = nb.getEdge();
+		adjEntry adj = nb->getAdjEntry();
+		edge e = nb->getEdge();
 		IPolyline& bends = GL.bends(e);
 		std::vector<node> adjNodes;
 		// Numero 0 = on est adjacent au noeud source de l'edge
-		if (nb.numero == 0) {
+		if (nb->numero == 0) {
 			adjNodes.push_back(e->source());
 		}
 		// Numero = bends.size() - 1 = on est adjacent au noeud target de l'edge
-		if (nb.numero == bends.size() - 1) {
+		if (nb->numero == bends.size() - 1) {
 			adjNodes.push_back(e->target());
 		}
 		for (int i = 0; i < adjNodes.size(); i++) {
@@ -449,12 +546,12 @@ bool orderNodeAdjChanged(NodeBend nb, GridLayout& GL, int newX, int newY) {
 }
 
 // Renvoie un vecteur de booléen de meme taille que "vectorMoveCoord". Ces booleen indiquent si le déplacement a la meme position dans ce vecteur est valide ou non.
-std::vector<bool> getLegalMoves(NodeBend& n, GridLayout& GL, std::vector<std::pair<int, int>> vectorMoveCoord, ConstCombinatorialEmbedding& ccem) {
+std::vector<bool> getLegalMoves(NodeBend* n, GridLayout& GL, std::vector<std::pair<int, int>> vectorMoveCoord, ConstCombinatorialEmbedding& ccem) {
 	// Vecteur qui indique si un déplacement est autorisé ou non
 	std::vector<bool> vectorMoveAutorised;
 	// On verifie en premier si le NodeBend peut se deplacer (on verifie le stacking)
-	if (n.isNode) {
-		if (n.nbDiffAdjStacked > 1) {
+	if (n->isNode) {
+		if (n->nbDiffAdjStacked > 1) {
 			for (int i = 0; i < vectorMoveCoord.size(); i++) {
 				vectorMoveAutorised.push_back(false);
 			}
@@ -463,83 +560,64 @@ std::vector<bool> getLegalMoves(NodeBend& n, GridLayout& GL, std::vector<std::pa
 	}
 	else {
 		// On verifie que l'on ne soit pas stacké avec le précédent et le suivant
-		if ((n.a_x == n.precedent->a_x) && (n.a_y == n.precedent->a_y) && (n.a_x == n.suivant->a_x) && (n.a_y == n.suivant->a_y)) {
+		if ((n->a_x == n->precedent->a_x) && (n->a_y == n->precedent->a_y) && (n->a_x == n->suivant->a_x) && (n->a_y == n->suivant->a_y)) {
 			for (int i = 0; i < vectorMoveCoord.size(); i++) {
 				vectorMoveAutorised.push_back(false);
 			}
 			return vectorMoveAutorised;
 		}
 	}
-	int srcX = (*n.a_x);
-	int srcY = (*n.a_y);
+	int srcX = (*n->a_x);
+	int srcY = (*n->a_y);
 	int trgX, trgY;
 	bool intersection;
 	SList<adjEntry> nodeAdjEntries;
-	std::vector<std::pair<int, int>> vectorTargetBend;
 	// Node a toujours le meme nombre d'adjEntry
-	if (n.isNode) {
-		n.getNode()->allAdjEntries(nodeAdjEntries);
-	}
-	// 1 ou 2 'adjEntry' selon si on est stacké avec un noeud ou non
-	else {
-		NodeBend* precedent = n.precedent;
-		bool found = false;
-		do {
-			if ((precedent->getX()!= n.getX()) || (precedent->getY() != n.getY())) {
-				std::cout << "Precedent x: " << *precedent->a_x << " y: " << *precedent->a_y << std::endl;
-				vectorTargetBend.push_back(std::pair<int, int>(*precedent->a_x, *precedent->a_y));
-				nodeAdjEntries.pushBack(n.getAdjEntry());
-				found = true;
-			}
-			else {
-				if (precedent->isNode) {
-					found = true;
-				}
-				else {
-					precedent = precedent->precedent;
-				}
-			}
-		} while (!found);
-		NodeBend* suivant = n.suivant;
-		found = false;
-		do {
-			if ((*suivant->a_x != *n.a_x) || (*suivant->a_y != *n.a_y)) {
-				std::cout << "Suivant x: " << *suivant->a_x << " y: " << *suivant->a_y << std::endl;
-				vectorTargetBend.push_back(std::pair<int, int>(*suivant->a_x, *suivant->a_y));
-				nodeAdjEntries.pushBack(n.getAdjEntry());
-				found = true;
-			}
-			else {
-				if (suivant->isNode) {
-					found = true;
-				}
-				else {
-					suivant = suivant->suivant;
-				}
-			}
-		} while (!found);
+	if (n->isNode) {
+		n->getNode()->allAdjEntries(nodeAdjEntries);
 	}
 	// Pour chaque déplacement, on regarde si il y a une intersection associé
 	int segmentSourceTrgX, segmentSourceTrgY;
 	// On recupere les segments des faces adjacentes du NodeBend
-	std::vector<Segment> vectorAdjFaceSegments = n.adjFaceSegment;
+	std::vector<Segment> vectorAdjFaceSegments = n->adjFaceSegment;
 	// Affichage debug
 	for (int i = 0; i < vectorAdjFaceSegments.size(); i++) {
-		std::cout << "Segment: " << i << " x1: " << *vectorAdjFaceSegments[i].sourceX << " y1: " << *vectorAdjFaceSegments[i].sourceY << " x2: " << *vectorAdjFaceSegments[i].targetX << " y2: " << *vectorAdjFaceSegments[i].targetY << std::endl;
+		//std::cout << "Segment: " << i << " x1: " << *vectorAdjFaceSegments[i].sourceX << " y1: " << *vectorAdjFaceSegments[i].sourceY << " x2: " << *vectorAdjFaceSegments[i].targetX << " y2: " << *vectorAdjFaceSegments[i].targetY << std::endl;
 	}
+	removeNodeBendPos(n, srcX, srcY);
+	// Vecteur si le nodebend est un bend pour les potentiels suivants et précédents
+	std::vector<NodeBend*> bendPrecSuiv;
 	for (int i = 0; i < vectorMoveCoord.size(); i++) {
+		posVectorNodeBend[vectorMoveCoord[i].first][vectorMoveCoord[i].second].insert(n);
+		*n->a_x = vectorMoveCoord[i].first;
+		*n->a_y = vectorMoveCoord[i].second;
+		// On cherche si il y a 1 ou 2 target apres le déplacement
+		if (!n->isNode) {
+			nodeAdjEntries.clear();
+			nodeAdjEntries.pushBack(n->getAdjEntry());
+			bendPrecSuiv.clear();
+			bendPrecSuiv = getTargetNodeBends(n);
+			if (bendPrecSuiv.size() > 1) {
+				nodeAdjEntries.pushBack(n->getAdjEntry());
+			}
+		}
 		//std::cout << "Check Deplacement " << i << std::endl;
 		intersection = false;
 		// On parcour la liste des adjentry du point de départ
 		int j = 0;
+		NodeBend* target = nullptr;
 		for (auto it = nodeAdjEntries.begin(); ((it != nodeAdjEntries.end()) && (!intersection)); it++, j++) {
 			// On recupere les coordonnées du target du segment
-			if (n.isNode) {
-				getTargetCoord(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
+			if (n->isNode) {
+				//getTargetCoord(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
+				target = getTargetCoordAndNodeBend(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
+				//std::cout << "Target1 Coord x: " << segmentSourceTrgX << " y: " << segmentSourceTrgY << std::endl;
+				//std::cout << "Target2 Coord x: " << *target->a_x << " y: " << *target->a_y << std::endl;
 			}
 			else {
-				segmentSourceTrgX = vectorTargetBend[j].first;
-				segmentSourceTrgY = vectorTargetBend[j].second;
+				target = bendPrecSuiv[j];
+				segmentSourceTrgX = *target->a_x;
+				segmentSourceTrgY = *target->a_y;
 			}
 			// Si le segment est non nul on fait les tests d'intersection, sinon on passe au prochain
 			if ((vectorMoveCoord[i].first != segmentSourceTrgX) || (vectorMoveCoord[i].second != segmentSourceTrgY)) {
@@ -547,63 +625,112 @@ std::vector<bool> getLegalMoves(NodeBend& n, GridLayout& GL, std::vector<std::pa
 				for (int k = 0; (k < vectorAdjFaceSegments.size()) && (!intersection); k++) {
 					// On vérifie que le segment n'est pas nul
 					if (!vectorAdjFaceSegments[k].isNull()) {
-						// Si le segment que l'on teste est adjacent au noeud source:
-						if ((*vectorAdjFaceSegments[k].sourceX == srcX) && (*vectorAdjFaceSegments[k].sourceY == srcY)) {
-							// Si le segment est différent de lui meme
-							if ((*vectorAdjFaceSegments[k].targetX != segmentSourceTrgX) || (*vectorAdjFaceSegments[k].targetY != segmentSourceTrgY)) {
-								// Alors on teste s'ils sont alignés:
-								if (aGaucheInt(vectorMoveCoord[i].first, vectorMoveCoord[i].second, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].targetX, *vectorAdjFaceSegments[k].targetY) == 0) {
-									// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
-									if (!dansRectangle(segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].targetX, *vectorAdjFaceSegments[k].targetY, vectorMoveCoord[i].first, vectorMoveCoord[i].second)) {
+						// On regarde si un NodeBend est commun aux deux segments ou s'il y a stacking
+						NodeBend* nodeBendCommun = nullptr;
+						std::pair<NodeBend*, NodeBend*> nodeBendNonCommun;
+						bool notStackable = false;
+						bool is_in = posVectorNodeBend[vectorMoveCoord[i].first][vectorMoveCoord[i].second].find(vectorAdjFaceSegments[k].source) != posVectorNodeBend[vectorMoveCoord[i].first][vectorMoveCoord[i].second].end();
+						if (is_in) {
+							notStackable = !(n->isStackableWith(vectorAdjFaceSegments[k].source));
+							//std::cout << "Stack Cas 1: " << notStackable << std::endl;
+						}
+						bool is_in2 = posVectorNodeBend[vectorMoveCoord[i].first][vectorMoveCoord[i].second].find(vectorAdjFaceSegments[k].target) != posVectorNodeBend[vectorMoveCoord[i].first][vectorMoveCoord[i].second].end();
+						if (is_in2) {
+							notStackable = notStackable||!(n->isStackableWith(vectorAdjFaceSegments[k].target));
+							//std::cout << "Stack Cas 2: " << notStackable << std::endl;
+						}
+						bool is_in3 = posVectorNodeBend[*target->a_x][*target->a_y].find(vectorAdjFaceSegments[k].source) != posVectorNodeBend[*target->a_x][*target->a_y].end();
+						if (is_in3) {
+							notStackable = notStackable||!(target->isStackableWith(vectorAdjFaceSegments[k].source));
+							//std::cout << "Stack Cas 3: " << notStackable << std::endl;
+						}
+						bool is_in4 = posVectorNodeBend[*target->a_x][*target->a_y].find(vectorAdjFaceSegments[k].target) != posVectorNodeBend[*target->a_x][*target->a_y].end();
+						if (is_in4) {
+							notStackable = notStackable||!(target->isStackableWith(vectorAdjFaceSegments[k].target));
+							//std::cout << "Stack Cas 4: " << notStackable << std::endl;
+						}
+						bool same = ((is_in && (is_in3 || is_in4)) || (is_in2 && (is_in3 || is_in4)));
+						bool stack = (is_in || is_in2 || is_in3 || is_in4);
+						//std::cout << "Deplacement: " << i << " stack: " << stack << " same: " << same << " dx " << *n->a_x - srcX << " dy " << *n->a_y - srcY << std::endl;
+						//std::cout << "x1: " << vectorMoveCoord[i].first << " y1: " << vectorMoveCoord[i].second << " x2: " << segmentSourceTrgX << " y2: " << segmentSourceTrgY << " x3: " << *vectorAdjFaceSegments[k].sourceX << " y3: " << *vectorAdjFaceSegments[k].sourceY << " x4: " << *vectorAdjFaceSegments[k].targetX << " y4: " << *vectorAdjFaceSegments[k].targetY << std::endl;
+						// Si on compare deux segments identique on passe
+						if (same) {
+							// On verifie si on est le meme segment ou superposé completement
+							if ((vectorAdjFaceSegments[k].target->globalNum == n->globalNum) && (vectorAdjFaceSegments[k].source->globalNum == target->globalNum)) {
+
+							}
+							else if ((vectorAdjFaceSegments[k].target->globalNum == target->globalNum) && (vectorAdjFaceSegments[k].source->globalNum == n->globalNum)) {
+
+							}
+							else {
+								// On verifie que le segment existe
+								if (!n->isNode) {
+									if ((n->suivant->globalNum == target->globalNum) || (n->precedent->globalNum == target->globalNum)) {
 										intersection = true;
-										std::cout << "Cas: 1 i:" << i << " k: " << k << " j: " << j << std::endl;
+										//std::cout << "Cas superposition complete" << std::endl;
+										//std::cout << "n " << n->globalNum << " t " << target->globalNum << " v1 " << vectorAdjFaceSegments[k].source->globalNum << " v2 " << vectorAdjFaceSegments[k].target->globalNum << std::endl;
+									}
+								}
+								else {
+									for (int i = 0; (i <n->adjNodeBend.size())&&!intersection; i++) {
+										if (n->adjNodeBend[i]->globalNum == target->globalNum) {
+											intersection = true;
+											//std::cout << "Cas superposition complete" << std::endl;
+											//std::cout << "n " << n->globalNum << " t " << target->globalNum << " v1 " << vectorAdjFaceSegments[k].source->globalNum << " v2 " << vectorAdjFaceSegments[k].target->globalNum << std::endl;
+										}
 									}
 								}
 							}
 						}
-						// Si le segment que l'on teste est adjacent au noeud source dans l'autre sens:
-						else if ((*vectorAdjFaceSegments[k].targetX == srcX) && (*vectorAdjFaceSegments[k].targetY == srcY)) {
-							// Si le segment est différent de lui meme
-							if ((*vectorAdjFaceSegments[k].sourceX != segmentSourceTrgX) || (*vectorAdjFaceSegments[k].sourceY != segmentSourceTrgY)) {
-								// Alors on teste s'ils sont alignés:
-								if (aGaucheInt(vectorMoveCoord[i].first, vectorMoveCoord[i].second, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].sourceX, *vectorAdjFaceSegments[k].sourceY) == 0) {
-									// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
-									if (!dansRectangle(segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].sourceX, *vectorAdjFaceSegments[k].sourceY, vectorMoveCoord[i].first, vectorMoveCoord[i].second)) {
-										intersection = true;
-										std::cout << "Cas: 2 i:" << i << " k: " << k << " j: " << j << std::endl;
-									}
-								}
-							}
-						}
-						// Si les segments sont adjacent entre eux:
-						else if ((segmentSourceTrgX == *vectorAdjFaceSegments[k].sourceX) && (segmentSourceTrgY == *vectorAdjFaceSegments[k].sourceY)) {
-							// Alors on teste s'ils sont alignés:
-							if (aGaucheInt(vectorMoveCoord[i].first, vectorMoveCoord[i].second, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].targetX, *vectorAdjFaceSegments[k].targetY) == 0) {
-								// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
-								if (!dansRectangle(vectorMoveCoord[i].first, vectorMoveCoord[i].second, *vectorAdjFaceSegments[k].targetX, *vectorAdjFaceSegments[k].targetY, segmentSourceTrgX, segmentSourceTrgY)) {
-									intersection = true;
-									std::cout << "Cas: 3 i:" << i << " k: " << k << " j: " << j << std::endl;
-								}
-							}
-						}
-						// Si les segments sont adjacent entre eux dans l'autre sens
-						else if ((segmentSourceTrgX == *vectorAdjFaceSegments[k].targetX) && (segmentSourceTrgY == *vectorAdjFaceSegments[k].targetY)) {
-							// Alors on teste s'ils sont alignés:
-							if (aGaucheInt(vectorMoveCoord[i].first, vectorMoveCoord[i].second, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].sourceX, *vectorAdjFaceSegments[k].sourceY) == 0) {
-								// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
-								if (!dansRectangle(vectorMoveCoord[i].first, vectorMoveCoord[i].second, *vectorAdjFaceSegments[k].sourceX, *vectorAdjFaceSegments[k].sourceY, segmentSourceTrgX, segmentSourceTrgY)) {
-									intersection = true;
-									std::cout << "Cas: 4 i:" << i << " k: " << k << " j: " << j << std::endl;
-								}
-							}
-						}
-						// Sinon:
 						else {
-							// On regarde s'ils se croisent
-							if (seCroisent(vectorMoveCoord[i].first, vectorMoveCoord[i].second, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].sourceX, *vectorAdjFaceSegments[k].sourceY, *vectorAdjFaceSegments[k].targetX, *vectorAdjFaceSegments[k].targetY)) {
+							// Deplacement interdit
+							if (notStackable) {
 								intersection = true;
-								std::cout << "Cas: 5 i:" << i << " k: " << k << " j: " << j << std::endl;
-								std::cout << "x1: " << vectorMoveCoord[i].first << " y1: " << vectorMoveCoord[i].second << " x2: " << segmentSourceTrgX << " y2: " << segmentSourceTrgY << " x3: " << *vectorAdjFaceSegments[k].sourceX << " y3: " << *vectorAdjFaceSegments[k].sourceY  << " x4: " << *vectorAdjFaceSegments[k].targetX << " y4: " << *vectorAdjFaceSegments[k].targetY << std::endl;
+								//std::cout << "Cas stack interdit" << std::endl;
+								//std::cout << "n " << n->globalNum << " t " << target->globalNum << " v1 " << vectorAdjFaceSegments[k].source->globalNum << " v2 " << vectorAdjFaceSegments[k].target->globalNum << std::endl;
+							}
+							else {
+								// Si on a un stacking on regarde uniquement la superposition
+								if (stack) {
+									if (is_in) {
+										nodeBendCommun = vectorAdjFaceSegments[k].source;
+										nodeBendNonCommun.first = target;
+										nodeBendNonCommun.second = vectorAdjFaceSegments[k].target;
+									}
+									else if (is_in2) {
+										nodeBendCommun = vectorAdjFaceSegments[k].target;
+										nodeBendNonCommun.first = target;
+										nodeBendNonCommun.second = vectorAdjFaceSegments[k].source;
+									}
+									else if (is_in3) {
+										nodeBendCommun = vectorAdjFaceSegments[k].source;
+										nodeBendNonCommun.first = n;
+										nodeBendNonCommun.second = vectorAdjFaceSegments[k].target;
+									}
+									else if (is_in4) {
+										nodeBendCommun = vectorAdjFaceSegments[k].target;
+										nodeBendNonCommun.first = n;
+										nodeBendNonCommun.second = vectorAdjFaceSegments[k].source;
+									}
+									// On teste si les 3 noeuds sont alignés
+									if (aGaucheInt(*nodeBendCommun->a_x, *nodeBendCommun->a_y, *nodeBendNonCommun.first->a_x, *nodeBendNonCommun.first->a_y, *nodeBendNonCommun.second->a_x, *nodeBendNonCommun.second->a_y) == 0) {
+										// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
+										if (!dansRectangle(*nodeBendNonCommun.first->a_x, *nodeBendNonCommun.first->a_y, *nodeBendNonCommun.second->a_x, *nodeBendNonCommun.second->a_y, *nodeBendCommun->a_x, *nodeBendCommun->a_y)) {
+											intersection = true;
+											//std::cout << "Cas: 1 i:" << i << " k: " << k << " j: " << j << std::endl;
+											//std::cout << "x1: " << *nodeBendNonCommun.first->a_x << " y1: " << *nodeBendNonCommun.first->a_y << " x2: " << *nodeBendNonCommun.second->a_x << " y2: " << *nodeBendNonCommun.second->a_y << " x3: " << *nodeBendCommun->a_x << " y3: " << *nodeBendCommun->a_y << std::endl;
+										}
+									}
+								}
+								// Si aucun stacking on fait le test d'intersection
+								else {
+									// On regarde s'ils se croisent
+									if (seCroisent(vectorMoveCoord[i].first, vectorMoveCoord[i].second, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k].sourceX, *vectorAdjFaceSegments[k].sourceY, *vectorAdjFaceSegments[k].targetX, *vectorAdjFaceSegments[k].targetY)) {
+										intersection = true;
+										//std::cout << "Cas: 2 i:" << i << " k: " << k << " j: " << j << std::endl;
+										//std::cout << "x1: " << vectorMoveCoord[i].first << " y1: " << vectorMoveCoord[i].second << " x2: " << segmentSourceTrgX << " y2: " << segmentSourceTrgY << " x3: " << *vectorAdjFaceSegments[k].sourceX << " y3: " << *vectorAdjFaceSegments[k].sourceY << " x4: " << *vectorAdjFaceSegments[k].targetX << " y4: " << *vectorAdjFaceSegments[k].targetY << std::endl;
+									}
+								}
 							}
 						}
 					}
@@ -611,9 +738,10 @@ std::vector<bool> getLegalMoves(NodeBend& n, GridLayout& GL, std::vector<std::pa
 			}
 			// Sinon on vérifie que le déplacement n'est pas un node sur un autre node
 			else {
-				if (n.isNode) {
-					if ((vectorMoveCoord[i].first == GL.x((*it)->twinNode()))&& (vectorMoveCoord[i].second == GL.y((*it)->twinNode()))) {
+				if (n->isNode) {
+					if ((vectorMoveCoord[i].first == GL.x((*it)->twinNode())) && (vectorMoveCoord[i].second == GL.y((*it)->twinNode()))) {
 						intersection = true;
+						//std::cout << "Cas: 3 i:" << i << std::endl;
 					}
 				}
 			}
@@ -623,23 +751,28 @@ std::vector<bool> getLegalMoves(NodeBend& n, GridLayout& GL, std::vector<std::pa
 			// On regarde si les ordre du noeud source ou des adjacents ont changé
 			if (orderNodeAdjChanged(n, GL, vectorMoveCoord[i].first, vectorMoveCoord[i].second)) {
 				intersection = true;
+				//std::cout << "Cas: 4 i:" << i << std::endl;
 			}
 			// Sinon on regarde le cas particulier si le point qui se déplace inverse une face sans changer l'ordre
 			// Pour cela il doit avoir 2 voisins et ses deux voisins aussi
-			else if (!n.isNode) {
-				if (ccem.leftFace(n.getAdjEntry()) != ccem.rightFace(n.getAdjEntry())) {
+			else if (!n->isNode) {
+				if (ccem.leftFace(n->getAdjEntry()) != ccem.rightFace(n->getAdjEntry())) {
 					// A FAIRE
 				}
 			}
-			else if (n.getNode()->degree() == 2) {
-				if (ccem.leftFace(n.getNode()->firstAdj()) != ccem.rightFace(n.getNode()->firstAdj())) {
+			else if (n->getNode()->degree() == 2) {
+				if (ccem.leftFace(n->getNode()->firstAdj()) != ccem.rightFace(n->getNode()->firstAdj())) {
 					// A FAIRE
 				}
 			}
 		}
 		// Intersection = déplacement pas autorisé
 		vectorMoveAutorised.push_back(!intersection);
+		removeNodeBendPos(n, vectorMoveCoord[i].first, vectorMoveCoord[i].second);
 	}
+	posVectorNodeBend[srcX][srcY].insert(n);
+	*n->a_x = srcX;
+	*n->a_y = srcY;
 	return vectorMoveAutorised;
 }
 
@@ -647,10 +780,10 @@ std::vector<bool> getLegalMoves(NodeBend& n, GridLayout& GL, std::vector<std::pa
 // Pour les déplacements: 0=droite(x+1) 1=haut(y+1) 2=gauche(x-1) 3=bas(y-1)
 // Cette fonction doit etre appelée avant un déplacement
 // Les poids assignés aux déplacements sont attribués en fonction de leur amélioration de l'écart-type
-std::vector<std::pair<int, std::pair<int, int>>> rouletteRusseNodeMove(NodeBend& n, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
+std::vector<std::pair<int, std::pair<int, int>>> rouletteRusseNodeMove(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
 	//std::cout << "Variance avant roulette: " << variance << std::endl;
-	int nx = (*n.a_x);
-	int ny = (*n.a_y);
+	int nx = (*n->a_x);
+	int ny = (*n->a_y);
 	// On stocke les changements de variances apres un déplacement
 	std::vector<double> vectorVarChangeMove;
 	// On stocke les coordonnées d'arrivée qu'on aurait apres le déplacement
@@ -675,11 +808,11 @@ std::vector<std::pair<int, std::pair<int, int>>> rouletteRusseNodeMove(NodeBend&
 	std::vector<bool> vectorMoveAutorised = getLegalMoves(n, GL, vectorMoveCoord, ccem);
 	SListPure<adjEntry> adjEntries;
 	bool isNode = true;
-	if (n.isNode) {
-		n.getNode()->allAdjEntries(adjEntries);
+	if (n->isNode) {
+		n->getNode()->allAdjEntries(adjEntries);
 	}
 	else {
-		adjEntries.pushBack(n.getAdjEntry());
+		adjEntries.pushBack(n->getAdjEntry());
 		isNode = false;
 	}
 	// Minimum et Maximum des variances des différents déplacements pour calcul de probabilité plus tard
@@ -726,7 +859,7 @@ std::vector<std::pair<int, std::pair<int, int>>> rouletteRusseNodeMove(NodeBend&
 	// On soustrait a tout les valeurs la variance maximale
 	for (int i = 0; i < vectorVarChangeMove.size(); i++) {
 		if (vectorMoveAutorised[i]) {
-			std::cout << "Contribution Variance deplacement " << i << ": " << vectorVarChangeMove[i] << std::endl;
+			//std::cout << "Contribution Variance deplacement " << i << ": " << vectorVarChangeMove[i] << std::endl;
 			vectorVarChangeMove[i] = (-vectorVarChangeMove[i]) + (2 * tmpMaxContribution);
 			tmpVarSomme += vectorVarChangeMove[i];
 		}
@@ -783,10 +916,10 @@ void changeEdgeLengthInMaps(edge e, double oldEdgeLength, double newEdgeLength) 
 // A appelé avant le déplacement avec les nouvelles coordonnées du nodebend
 // Change la variance du graphe en fonction du déplacement choisi
 // Modifie les maps utilisant les longueurs des egdes
-void changeVariance(NodeBend n, GridLayout& GL, int newSrcX, int newSrcY, double& sommeLong, double& sommeLong2, double& variance) {
-	if (n.isNode) {
+void changeVariance(NodeBend* n, GridLayout& GL, int newSrcX, int newSrcY, double& sommeLong, double& sommeLong2, double& variance) {
+	if (n->isNode) {
 		List<adjEntry> nodeAdjEntries;
-		n.getNode()->allAdjEntries(nodeAdjEntries);
+		n->getNode()->allAdjEntries(nodeAdjEntries);
 		double oldEdgeLength, newEdgeLength;
 		for (auto it = nodeAdjEntries.begin(); it != nodeAdjEntries.end(); it++) {
 			edge e = (*it)->theEdge();
@@ -799,7 +932,7 @@ void changeVariance(NodeBend n, GridLayout& GL, int newSrcX, int newSrcY, double
 		}
 	}
 	else {
-		edge e = n.getEdge();
+		edge e = n->getEdge();
 		auto it = mapEdgeLength.find(e);
 		double oldEdgeLength = it->second;
 		double newEdgeLength = calcTmpEdgeLengthBends(e, n, newSrcX, newSrcY, GL);
@@ -811,37 +944,58 @@ void changeVariance(NodeBend n, GridLayout& GL, int newSrcX, int newSrcY, double
 }
 
 // Deplace un NodeBend aux coordonnées newX et newY et fait les vérifications sur le stacking.
-void moveNodeBend(NodeBend nb, int newX, int newY) {
-	(*nb.a_x) = newX;
-	(*nb.a_y) = newY;
-	if (nb.isNode) {
-		nb.recalculateAdjBendStack();
+void moveNodeBend(NodeBend* nb, int newX, int newY) {
+	removeNodeBendPos(nb, *nb->a_x, *nb->a_y);
+	(*nb->a_x) = newX;
+	(*nb->a_y) = newY;
+	if (nb->isNode) {
+		nb->recalculateAdjBendStack();
 	}
 	else {
-		nb.recalculateIsStacked();
-		nb.precedent->recalculateIsStacked();
-		nb.suivant->recalculateIsStacked();
+		nb->recalculateIsStacked();
+		nb->precedent->recalculateIsStacked();
+		nb->suivant->recalculateIsStacked();
 	}
+	posVectorNodeBend[*nb->a_x][*nb->a_y].insert(nb);
+}
+
+// Fonction de déplacement utilisée avec les raccourcis openGL, pas utilisée pour les tests finaux
+void move(NodeBend* n, GridLayout& GL, int dx, int dy, double& sommeLong, double& sommeLong2, double& variance) {
+	removeNodeBendPos(n,*n->a_x,*n->a_y);
+	int newX = (*n->a_x) + dx;
+	int newY = (*n->a_y) + dy;
+	changeVariance(n, GL, newX, newY, sommeLong, sommeLong2, variance);
+	(*n->a_x) = newX;
+	(*n->a_y) = newY;
+	if (n->isNode) {
+		n->recalculateAdjBendStack();
+	}
+	else {
+		n->recalculateIsStacked();
+		n->precedent->recalculateIsStacked();
+		n->suivant->recalculateIsStacked();
+	}
+	posVectorNodeBend[*n->a_x][*n->a_y].insert(n);
 }
 
 // Demarre l'algorithme de roulette russe sur le NodeBend choisi a l'avance
 void specificRouletteRusse(int numero, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
-	std::cout << "Numero selectionne: " << numero << std::endl;
-	NodeBend nb = vectorNodeBends[numero];
+	//std::cout << "Numero selectionne: " << numero << std::endl;
+	NodeBend* nb = vectorNodeBends[numero];
 	std::vector<std::pair<int, std::pair<int, int>>> probaDeplacement = rouletteRusseNodeMove(nb, GL, ccem, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 	if (probaDeplacement.size() > 0) {
 		int randomChoice = generateRand(100);
 		bool moved = false;
 		for (int i = 0; ((i < probaDeplacement.size()) && (!moved)); i++) {
 			if (randomChoice <= probaDeplacement[i].first) {
-				std::cout << "Nombre aleatoire: " << randomChoice << " Deplacement choisi : " << i << std::endl;
+				//std::cout << "Nombre aleatoire: " << randomChoice << " Deplacement choisi : " << i << std::endl;
 				changeVariance(nb, GL, probaDeplacement[i].second.first, probaDeplacement[i].second.second, sommeLong, sommeLong2, variance);
 				moveNodeBend(nb, probaDeplacement[i].second.first, probaDeplacement[i].second.second);
 				moved = true;
 			}
 		}
 	}
-	std::cout << "Nouvelle variance " << variance << std::endl;
+	//std::cout << "Nouvelle variance " << variance << std::endl;
 }
 
 // Demarre l'algorithme de roulette russe sur le graphe
@@ -850,7 +1004,7 @@ int startRouletteRusse(GridLayout& GL, ConstCombinatorialEmbedding& ccem, double
 	// On choisis au hasard un NodeBend
 	int randomNum = generateRand(vectorNodeBends.size()) - 1;
 	//std::cout << "Numero selectionne: " << randomNum << std::endl;
-	NodeBend nb = vectorNodeBends[randomNum];
+	NodeBend* nb = vectorNodeBends[randomNum];
 	std::vector<std::pair<int, std::pair<int, int>>> probaDeplacement = rouletteRusseNodeMove(nb, GL, ccem, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 	if (probaDeplacement.size() > 0) {
 		int randomChoice = generateRand(100);
@@ -871,9 +1025,9 @@ int startRouletteRusse(GridLayout& GL, ConstCombinatorialEmbedding& ccem, double
 // Renvoie un vecteur qui attribue une probabilité a un déplacement
 // Cette fonction doit etre appelée avant un déplacement
 // Les poids assignés aux déplacements sont attribués en fonction de leur amélioration de l'écart-type et du coefficient de recuit simulé
-std::vector<std::pair<int, std::pair<int, int>>> recuitSimuleNodeMove(NodeBend& n, double coeff, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
-	int nx = (*n.a_x);
-	int ny = (*n.a_y);
+std::vector<std::pair<int, std::pair<int, int>>> recuitSimuleNodeMove(NodeBend* n, double coeff, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
+	int nx = (*n->a_x);
+	int ny = (*n->a_y);
 	// On stocke les changements de variances apres un déplacement
 	std::vector<double> vectorVarChangeMove;
 	// On stocke les coordonnées d'arrivée qu'on aurait apres le déplacement
@@ -898,11 +1052,11 @@ std::vector<std::pair<int, std::pair<int, int>>> recuitSimuleNodeMove(NodeBend& 
 	std::vector<bool> vectorMoveAutorised = getLegalMoves(n, GL, vectorMoveCoord, ccem);
 	SListPure<adjEntry> adjEntries;
 	bool isNode = true;
-	if (n.isNode) {
-		n.getNode()->allAdjEntries(adjEntries);
+	if (n->isNode) {
+		n->getNode()->allAdjEntries(adjEntries);
 	}
 	else {
-		adjEntries.pushBack(n.getAdjEntry());
+		adjEntries.pushBack(n->getAdjEntry());
 		isNode = false;
 	}
 	// Minimum et Maximum des variances des différents déplacements pour calcul de probabilité plus tard
@@ -1014,7 +1168,7 @@ int startRecuitSimule(double coeff, GridLayout& GL, ConstCombinatorialEmbedding&
 	// On choisis au hasard un NodeBend
 	int randomNum = generateRand(vectorNodeBends.size()) - 1;
 	//std::cout << "Numero selectionne: " << randomNum << std::endl;
-	NodeBend nb = vectorNodeBends[randomNum];
+	NodeBend* nb = vectorNodeBends[randomNum];
 	std::vector<std::pair<int, std::pair<int, int>>> probaDeplacement = recuitSimuleNodeMove(nb, coeff, GL, ccem, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 	std::vector<double> tmpProba;
 	double tmpSommeProba = 0;
@@ -1026,8 +1180,7 @@ int startRecuitSimule(double coeff, GridLayout& GL, ConstCombinatorialEmbedding&
 			if (randomChoice <= probaDeplacement[i].first) {
 				//std::cout << "Nombre aleatoire: " << randomChoice << " Deplacement choisi : " << i << std::endl;
 				changeVariance(nb, GL, probaDeplacement[i].second.first, probaDeplacement[i].second.second, sommeLong, sommeLong2, variance);
-				(*nb.a_x) = probaDeplacement[i].second.first;
-				(*nb.a_y) = probaDeplacement[i].second.second;
+				moveNodeBend(nb, probaDeplacement[i].second.first, probaDeplacement[i].second.second);
 				moved = true;
 			}
 		}
@@ -1038,9 +1191,9 @@ int startRecuitSimule(double coeff, GridLayout& GL, ConstCombinatorialEmbedding&
 
 // Renvoie un vecteur composé des meilleurs déplacements améliorant la variance
 // Cette fonction doit etre appelée avant un déplacement
-std::vector<std::pair<int, int>> bestVarianceNodeMove(NodeBend& n, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
-	int nx = (*n.a_x);
-	int ny = (*n.a_y);
+std::vector<std::pair<int, int>> bestVarianceNodeMove(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
+	int nx = (*n->a_x);
+	int ny = (*n->a_y);
 	// On stocke les changements de variances apres un déplacement
 	std::vector<double> vectorVarChangeMove;
 	// On stocke les coordonnées d'arrivée qu'on aurait apres le déplacement
@@ -1065,11 +1218,11 @@ std::vector<std::pair<int, int>> bestVarianceNodeMove(NodeBend& n, GridLayout& G
 	std::vector<bool> vectorMoveAutorised = getLegalMoves(n, GL, vectorMoveCoord, ccem);
 	SListPure<adjEntry> adjEntries;
 	bool isNode = true;
-	if (n.isNode) {
-		n.getNode()->allAdjEntries(adjEntries);
+	if (n->isNode) {
+		n->getNode()->allAdjEntries(adjEntries);
 	}
 	else {
-		adjEntries.pushBack(n.getAdjEntry());
+		adjEntries.pushBack(n->getAdjEntry());
 		isNode = false;
 	}
 	// Minimum et Maximum des variances des différents déplacements pour calcul de probabilité plus tard
@@ -1126,7 +1279,7 @@ std::vector<std::pair<int, int>> bestVarianceNodeMove(NodeBend& n, GridLayout& G
 // retourne le numero du nodebend choisi, uniquement utile pour l'affichage opengl
 // On itere sur les noeuds dans l'ordre
 int startBestVariance(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int numCourant, int& numLastMoved, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
-	NodeBend nb = vectorNodeBends[numCourant];
+	NodeBend* nb = vectorNodeBends[numCourant];
 	std::vector<std::pair<int, int>> deplacements = bestVarianceNodeMove(nb, GL, ccem, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 	std::vector<double> tmpProba;
 	double tmpSommeProba = 0;
@@ -1135,8 +1288,7 @@ int startBestVariance(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int num
 		numLastMoved = numCourant;
 		int randomChoice = generateRand(size) - 1;
 		changeVariance(nb, GL, deplacements[randomChoice].first, deplacements[randomChoice].second, sommeLong, sommeLong2, variance);
-		(*nb.a_x) = deplacements[randomChoice].first;
-		(*nb.a_y) = deplacements[randomChoice].second;
+		moveNodeBend(nb, deplacements[randomChoice].first, deplacements[randomChoice].second);
 	}
 	//std::cout << "Nouvelle variance " << variance << std::endl;
 	return numCourant;
@@ -1144,9 +1296,9 @@ int startBestVariance(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int num
 
 // Renvoie un vecteur composé des meilleurs déplacements réduisant les longueurs autour d'un noeud
 // Cette fonction doit etre appelée avant un déplacement
-std::vector<std::pair<int, int>> shortestLengthNodeMove(NodeBend& n, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
-	int nx = (*n.a_x);
-	int ny = (*n.a_y);
+std::vector<std::pair<int, int>> shortestLengthNodeMove(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
+	int nx = (*n->a_x);
+	int ny = (*n->a_y);
 	// On stocke les coordonnées d'arrivée qu'on aurait apres le déplacement
 	std::vector<std::pair<int, int>> vectorMoveCoord;
 	if ((nx + 1) <= gridWidth)
@@ -1169,11 +1321,11 @@ std::vector<std::pair<int, int>> shortestLengthNodeMove(NodeBend& n, GridLayout&
 	std::vector<bool> vectorMoveAutorised = getLegalMoves(n, GL, vectorMoveCoord, ccem);
 	SListPure<adjEntry> adjEntries;
 	bool isNode = true;
-	if (n.isNode) {
-		n.getNode()->allAdjEntries(adjEntries);
+	if (n->isNode) {
+		n->getNode()->allAdjEntries(adjEntries);
 	}
 	else {
-		adjEntries.pushBack(n.getAdjEntry());
+		adjEntries.pushBack(n->getAdjEntry());
 		isNode = false;
 	}
 	// On stocke les changements de longueurs apres un déplacement
@@ -1217,7 +1369,7 @@ std::vector<std::pair<int, int>> shortestLengthNodeMove(NodeBend& n, GridLayout&
 // retourne le numero du nodebend choisi, uniquement utile pour l'affichage opengl
 // On itere sur les noeuds dans l'ordre
 int startShortestLength(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int numCourant, int& numLastMoved, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
-	NodeBend nb = vectorNodeBends[numCourant];
+	NodeBend* nb = vectorNodeBends[numCourant];
 	std::vector<std::pair<int, int>> deplacements = shortestLengthNodeMove(nb, GL, ccem, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 	std::vector<double> tmpProba;
 	double tmpSommeProba = 0;
@@ -1226,8 +1378,7 @@ int startShortestLength(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int n
 		numLastMoved = numCourant;
 		int randomChoice = generateRand(size) - 1;
 		changeVariance(nb, GL, deplacements[randomChoice].first, deplacements[randomChoice].second, sommeLong, sommeLong2, variance);
-		(*nb.a_x) = deplacements[randomChoice].first;
-		(*nb.a_y) = deplacements[randomChoice].second;
+		moveNodeBend(nb, deplacements[randomChoice].first, deplacements[randomChoice].second);
 	}
 	//std::cout << "Nouvelle variance " << variance << std::endl;
 	return numCourant;
@@ -1237,15 +1388,6 @@ int startShortestLength(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int n
 double calcEdgeLengthRatio() {
 	double ratio = (mapLengthEdgeSet.rbegin()->first / mapLengthEdgeSet.begin()->first);
 	return ratio;
-}
-
-// Fonction de déplacement utilisée avec les raccourcis openGL, pas utilisée pour les tests finaux
-void move(NodeBend n, GridLayout& GL, int dx, int dy, double& sommeLong, double& sommeLong2, double& variance) {
-	int newX = (*n.a_x) + dx;
-	int newY = (*n.a_y) + dy;
-	changeVariance(n, GL, newX, newY, sommeLong, sommeLong2, variance);
-	(*n.a_x) = newX;
-	(*n.a_y) = newY;
 }
 
 // Renvoie l'ordre trigonométrique de tout les adjEntry autour d'un noeud
