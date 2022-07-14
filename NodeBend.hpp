@@ -80,14 +80,14 @@ public:
 			this->isStacked = nbDiffAdjStacked > 0;
 		}
 		else {
-			this->isStacked = (((precedent->a_x == this->a_x) && (precedent->a_y == this->a_y)) || ((suivant->a_x == this->a_x) && (suivant->a_y == this->a_y)));
+			this->isStacked = (((*precedent->a_x == *this->a_x) && (*precedent->a_y == *this->a_y)) || ((*suivant->a_x == *this->a_x) && (*suivant->a_y == *this->a_y)));
 		}
 	}
 	void recalculateAdjBendStack() {
 		nbDiffAdjStacked = 0;
 		for (int i = 0; i < adjNodeBend.size(); i++) {
 			adjNodeBend[i]->recalculateIsStacked();
-			if ((adjNodeBend[i]->a_x == this->a_x) && (adjNodeBend[i]->a_y == this->a_y)) {
+			if ((*adjNodeBend[i]->a_x == *this->a_x) && (*adjNodeBend[i]->a_y == *this->a_y)) {
 				nbDiffAdjStacked++;
 			}
 		}

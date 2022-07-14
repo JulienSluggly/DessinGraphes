@@ -73,7 +73,9 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	writeCsvDouble("dataTime.csv", 0, variance);
 
 	int width, height;
-	while (calcEdgeLengthRatio() > 1.00005) {
+	double ratio = calcEdgeLengthRatio();
+	double bestRatio = ratio;
+	while (bestRatio > 1.00005) {
 		float ratio;
 		// Roulette russe
 		if (i == 0) {
@@ -108,7 +110,7 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 			}
 		}
 		// Sauvegarde du nouveau meilleur graphe
-		if (variance < bestVariance) {
+		/*if (variance < bestVariance) {
 			bestVariance = variance;
 			writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
 			//checkTime(start, lastWritten, 10, variance,true);
@@ -117,6 +119,18 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 		else {
 			checkTime(start, lastWritten, 10, variance,false);
 			checkTour(totalTurn, lastWrittenTurn, 10000, variance,false);
+		}*/
+		// Sauvegarde du nouveau meilleur graphe best ratio
+		ratio = calcEdgeLengthRatio();
+		if (ratio < bestRatio) {
+			bestRatio = ratio;
+			writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+			//checkTime(start, lastWritten, 10, variance,true);
+			checkTour(totalTurn, lastWrittenTurn, 10000, ratio, true);
+		}
+		else {
+			checkTime(start, lastWritten, 10, ratio, false);
+			checkTour(totalTurn, lastWrittenTurn, 10000, ratio, false);
 		}
 	}
 }

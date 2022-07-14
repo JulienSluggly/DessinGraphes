@@ -36,6 +36,8 @@ bool show_segments = false;
 bool show_nodemap = false;
 bool check_stackability = false;
 bool check_posMap = false;
+bool show_ratio = false;
+bool save_current = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -195,6 +197,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_KP_7:
 			check_posMap = true;
+			break;
+		case GLFW_KEY_KP_8:
+			show_ratio = true;
+			break;
+		case GLFW_KEY_KP_9:
+			save_current = true;
 			break;
 		}
 }
@@ -402,6 +410,13 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 				std::cout << std::endl;
 			}
 			show_nodemap = false;
+		}
+		else if (show_ratio) {
+			std::cout << "Ratio: " << calcEdgeLengthRatio() << " Variance: " << variance << std::endl;
+			show_ratio = false;
+		}
+		else if (save_current) {
+			writeToJson("currentSave.json", G, GL, gridWidth, gridHeight, maxBends);
 		}
 		else if (show_segments) {
 			std::cout << "Affichage des Segments adjacents du NodeBend: " << selectedNodeBendNum << std::endl;
