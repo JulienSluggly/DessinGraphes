@@ -26,7 +26,7 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-4.json";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-2.json";
 	std::cout << "File: " << file << std::endl;
 	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
 	writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
@@ -53,6 +53,12 @@ int main() {
 	embedderCarte(G, GL);
 	std::cout << "Embeded: " << G.representsCombEmbedding() << std::endl;
 
+	ConstCombinatorialEmbedding CCE{ G };
+	vectorFaceSegment.reserve(CCE.maxFaceIndex()+1);
+	for (int i = 0; i < vectorFaceSegment.capacity(); i++) {
+		std::vector<Segment*> tmpVecSegment;
+		vectorFaceSegment.push_back(tmpVecSegment);
+	}
 	//GraphIO::write(GL, "output-ERDiagram2.svg", GraphIO::drawSVG);
 	std::cout << "Connexe: " << isConnected(G) << std::endl;
 	std::cout << "Planaire: " << isPlanar(G) << std::endl;
@@ -72,7 +78,7 @@ int main() {
 	// Ajout des node dans le vector
 	node n = G.firstNode();
 	while (n != nullptr) {
-		NodeBend* tmpNodeBend = new NodeBend(n, GL);
+		NodeBend* tmpNodeBend = new NodeBend(n, GL, CCE);
 		vectorNodeBends.push_back(tmpNodeBend);
 		n = n->succ();
 	}
@@ -88,7 +94,7 @@ int main() {
 		for (ListIterator<IPoint> i = bends.begin(); i.valid(); k++) {
 			p1 = getNodeBendFromNode(e->source());
 			p2 = getNodeBendFromNode(e->target());
-			NodeBend* tmpNodeBend = new NodeBend((*i), e, k);
+			NodeBend* tmpNodeBend = new NodeBend((*i), e, k, CCE);
 			tmpNodeBend->parent1 = p1;
 			tmpNodeBend->parent2 = p2;
 			// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
@@ -109,8 +115,6 @@ int main() {
 			tmpNodeBend->precedent = precedent;
 			if (!precedent->isNode) {
 				precedent->suivant = tmpNodeBend;
-				if (precedent->suivant == nullptr)
-					std::cout << "NULL" << std::endl;
 			}
 			i++;
 			if (!i.valid()) {
@@ -121,28 +125,37 @@ int main() {
 		}
 		e = e->succ();
 	}
-
 	// Assign du num global et du tableau de position
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
 		vectorNodeBends[i]->assignGlobalNum(i);
 		posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].insert(vectorNodeBends[i]);
 	}
 
-	// On initialise le tableau de segment de chaque nodebend
-	ConstCombinatorialEmbedding CCE{G};
-	int* srcX, *srcY, *trgX, *trgY;
-	std::set<edge> edgeSet;
-	//std::cout << "Remplissage du tableau: --------------------------------" << std::endl;
-	NodeBend* source = nullptr;
-	NodeBend* target = nullptr;
-	for (int i = 0; i < vectorNodeBends.size(); i++) {
-		edgeSet.clear();
-		edgeSet = getEdgesFromAdjFacesFromNodeBend(vectorNodeBends[i],CCE);
-		for (auto it = edgeSet.begin();it != edgeSet.end();it++) {
-			srcX = &GL.x((*it)->source());
-			srcY = &GL.y((*it)->source());
-			source = getNodeBendFromNode((*it)->source());
-			IPolyline& p = GL.bends((*it));
+	// On initialise le tableau global de segment et la map de face a segment
+	face f = CCE.firstFace();
+	std::vector<edge> vectorEdges;
+	vectorEdges.reserve(f->size());
+	while (f != nullptr) {
+		int numeroFace = f->index();
+		// On recupere la liste des edges
+		adjEntry firstAdj = f->firstAdj();
+		adjEntry nextAdj = firstAdj;
+		if (firstAdj != nullptr) {
+			do {
+				vectorEdges.push_back(nextAdj->theEdge());
+				nextAdj = f->nextFaceEdge(nextAdj);
+			} while ((nextAdj != firstAdj) && (nextAdj != nullptr));
+		}
+		// On parcour tout les edges et on les transforme en segments ou on regarde s'il existe deja.
+		int* srcX, * srcY, * trgX, * trgY;
+		NodeBend* source = nullptr;
+		NodeBend* target = nullptr;
+		Segment* s = nullptr;
+		for (int i = 0;i<vectorEdges.size();i++) {
+			srcX = &GL.x(vectorEdges[i]->source());
+			srcY = &GL.y(vectorEdges[i]->source());
+			source = getNodeBendFromNode(vectorEdges[i]->source());
+			IPolyline& p = GL.bends(vectorEdges[i]);
 			// Si l'edge contient des bends
 			if (p.size() > 0) {
 				auto it2 = p.begin();
@@ -150,38 +163,39 @@ int main() {
 					trgX = &(*it2).m_x;
 					trgY = &(*it2).m_y;
 					target = getNodeBendFromBend(&(*it2));
-					Segment tmpSeg(srcX, srcY, trgX, trgY);
-					tmpSeg.setSource(source);
-					tmpSeg.setTarget(target);
-					vectorNodeBends[i]->addAdjFaceSegment(tmpSeg);
+					s = getSegmentFromNodeBends(source, target);
+					// On créé le segment s'il n'existe pas
+					if (s == nullptr) {
+						s = new Segment(srcX, srcY, trgX, trgY);
+						s->setSource(source);
+						s->setTarget(target);
+						vectorSegments.push_back(s);
+						
+					}
+					vectorFaceSegment[numeroFace].push_back(s);
 					srcX = trgX;
 					srcY = trgY;
 					it2++;
 					source = target;
 				}
 			}
-			target = getNodeBendFromNode((*it)->target());
-			trgX = &GL.x((*it)->target());
-			trgY = &GL.y((*it)->target());
-			Segment tmpSeg(srcX, srcY, trgX, trgY);
-			tmpSeg.setSource(source);
-			tmpSeg.setTarget(target);
-			vectorNodeBends[i]->addAdjFaceSegment(tmpSeg);
-		}
-		//std::cout << "Numero: " << i << " Taille tableau: " << vectorNodeBends[i]->adjFaceSegment.size() << std::endl;
-		if (vectorNodeBends[i]->isNode) {
-			ListPure<adjEntry> nodeAdjEntries;
-			vectorNodeBends[i]->getNode()->allAdjEntries(nodeAdjEntries);
-			for (auto it = nodeAdjEntries.begin(); it.valid(); it++) {
-				std::vector<Segment> adjSegmentVector = getSegmentFromAdjFacesFromAdjEntry((*it), CCE, GL);
-				for (int j = 0; j < adjSegmentVector.size(); j++) {
-					vectorNodeBends[i]->insertSegmentToAdjEntry((*it), adjSegmentVector[j]);
-				}
+			target = getNodeBendFromNode(vectorEdges[i]->target());
+			trgX = &GL.x(vectorEdges[i]->target());
+			trgY = &GL.y(vectorEdges[i]->target());
+			s = getSegmentFromNodeBends(source, target);
+			if (s == nullptr) {
+				s = new Segment(srcX, srcY, trgX, trgY);
+				s->setSource(source);
+				s->setTarget(target);
+				vectorSegments.push_back(s);
 			}
+			vectorFaceSegment[numeroFace].push_back(s);
 		}
+		f = f->succ();
 	}
-	//std::cout << "FIN Remplissage du tableau: --------------------------------" << std::endl;
 	
+	// Afichage des numeros et suivants pour debug
+	/*
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
 		std::cout << "Numero: " << i << " GlobalNum: " << vectorNodeBends[i]->globalNum << " isNode: " << vectorNodeBends[i]->isNode;
 		if (!vectorNodeBends[i]->isNode) {
@@ -192,13 +206,14 @@ int main() {
 		}
 		std::cout << std::endl;
 	}
+	*/
 
 	// On melange le vecteur de nodebend pour affecter de l'aléatoire sur certains algo
 //	auto rd = std::random_device{};
 //	auto rng = std::default_random_engine{ rd() };
 //	std::shuffle(std::begin(vectorNodeBends), std::end(vectorNodeBends), rng);
 
-	bool useOpenGL = false;
+	bool useOpenGL = true;
 
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));
@@ -206,7 +221,7 @@ int main() {
 		dispOpenGL(G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
 	}
 	else {
-		runAlgo(10, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
+		runAlgo(1, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
 	}
 	return 0;
 }

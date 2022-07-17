@@ -3,6 +3,10 @@
 #include <ogdf/basic/GridLayout.h>
 #include <ogdf/basic/EdgeArray.h>
 #include <ogdf/fileformats/GraphIO.h>
+#include <ogdf/planarlayout/PlanarStraightLayout.h>
+#include <ogdf/planarity/EmbedderMinDepth.h>
+#include <ogdf/planarity/SimpleEmbedder.h>
+#include <ogdf/basic/simple_graph_alg.h>
 #include "geometrie.hpp"
 using namespace ogdf;
 
@@ -25,11 +29,11 @@ public:
 	NodeBend* precedent = nullptr;
 	// adjNodeBend pour les node uniquement
 	std::vector<NodeBend*> adjNodeBend;
-	// Liste de tout les segments des faces adjacentes au NodeBend
-	std::vector<Segment> adjFaceSegment;
-	// Map des segments pouvant avoir une intersection avec une adjEntry
-	std::map<adjEntry, std::vector<Segment>> mapSegmentInter;
-	NodeBend(node n, GridLayout& GL) {
+	// Map de l'adjentry aux numeros des faces gauches et droites de l'adjentry, utilisé pour les node
+	std::map<adjEntry, std::pair<int,int>> mapAdjFaces;
+	// Numero des faces autour de l'adjEntry, utilisé pour les bends
+	std::pair<int, int> pairAdjFaces;
+	NodeBend(node n, GridLayout& GL, ConstCombinatorialEmbedding& CCE) {
 		isNode = true;
 		m_n = n;
 		a_x = &GL.x(n);
@@ -39,17 +43,19 @@ public:
 		n->allAdjEntries(nodeAdjEntries);
 		for (auto it = nodeAdjEntries.begin(); it.valid(); it++) {
 			adjBendsStack.insert(std::pair<adjEntry, int>((*it), 0));
-			std::vector<Segment> tmpVector;
-			mapSegmentInter.insert(std::pair<adjEntry, std::vector<Segment>>((*it), tmpVector));
+			std::pair<int,int> tmpPair(CCE.leftFace((*it))->index(), CCE.rightFace((*it))->index());
+			mapAdjFaces.insert(std::pair<adjEntry, std::pair<int,int>>((*it), tmpPair));
 		}
 	}
-	NodeBend(IPoint& p, edge e, int num) {
+	NodeBend(IPoint& p, edge e, int num, ConstCombinatorialEmbedding& CCE) {
 		isNode = false;
 		m_p = &p;
 		m_e = e;
 		a_x = &p.m_x;
 		a_y = &p.m_y;
 		numero = num;
+		std::pair<int, int> tmpPair(CCE.leftFace(e->adjSource())->index(), CCE.rightFace(e->adjSource())->index());
+		pairAdjFaces = tmpPair;
 	}
 	node getNode() {
 		return m_n;
@@ -95,13 +101,22 @@ public:
 	void addAdjNodeBend(NodeBend* nb) {
 		adjNodeBend.push_back(nb);
 	}
-	void addAdjFaceSegment(Segment s) {
-		adjFaceSegment.push_back(s);
+	// Assigne les numeros des faces adjacentes a l'adjentry
+	void setAdjEntryFaces(adjEntry a, int f1, int f2) {
+		auto it = mapAdjFaces.find(a);
+		if (it != mapAdjFaces.end())
+			it->second.first = f1;
+		it->second.second = f2;
 	}
-	void insertSegmentToAdjEntry(adjEntry adj, Segment s) {
-		auto it = mapSegmentInter.find(adj);
-		if (it != mapSegmentInter.end())
-			it->second.push_back(s);
+	// Recupere les numeros des faces liées a l'adjentry
+	std::pair<int, int> getAdjEntryFaces(adjEntry a) {
+		if (this->isNode) {
+			auto it = mapAdjFaces.find(a);
+			return (it->second);
+		}
+		else {
+			return pairAdjFaces;
+		}
 	}
 	// Indique si le nodebend peut se stack avec le nodebend nb
 	bool isStackableWith(NodeBend* nb) {

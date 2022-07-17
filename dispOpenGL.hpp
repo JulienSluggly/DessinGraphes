@@ -419,12 +419,7 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			writeToJson("currentSave.json", G, GL, gridWidth, gridHeight, maxBends);
 		}
 		else if (show_segments) {
-			std::cout << "Affichage des Segments adjacents du NodeBend: " << selectedNodeBendNum << std::endl;
-			for (int i = 0; i < vectorNodeBends[selectedNodeBendNum]->adjFaceSegment.size(); i++) {
-				std::cout << "Segment: " << i << " x1: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].sourceX << " y1: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].sourceY << " x2: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].targetX << " y2: " << *vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].targetY;
-				std::cout << " SourceNum: " << vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].source->globalNum << " TargetNum: " << vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].target->globalNum << "isNull:" << vectorNodeBends[selectedNodeBendNum]->adjFaceSegment[i].isNull() << std::endl;
-				//std::cout << std::endl;
-			}
+			std::cout << "Affichage des Segments adjacents du NodeBend: A REFAIRE " << selectedNodeBendNum << std::endl;
 			show_segments = false;
 		}
 		//afficher les edge
