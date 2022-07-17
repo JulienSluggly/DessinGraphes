@@ -27,6 +27,7 @@ bool moveRecuitSimule = false;
 bool autoRecuitSimule = false;
 bool moveRouletteRusse = false;
 bool specifiqueRouletteRusse = false;
+bool specifiqueRecuitSimule = false;
 bool autoRouletteRusse = false;
 bool move_nodebend = false;
 bool move_randomly = false;
@@ -133,21 +134,45 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_L:
 			showAllEdges = !showAllEdges;
 			break;
+		case GLFW_KEY_O:
+			if (selectedAdj != nullptr) {
+				setFace.clear();
+				setEdge.clear();
+				setFace.insert(CCE.rightFace(selectedAdj));
+				setFace.insert(CCE.leftFace(selectedAdj));
+				for (auto it = setFace.begin(); it != setFace.end(); it++) {
+					adjEntry firstAdj = (*it)->firstAdj();
+					adjEntry nextAdj = firstAdj;
+					if (firstAdj != nullptr) {
+						do {
+							if (nextAdj->theEdge() != nullptr) {
+								setEdge.insert(nextAdj->theEdge());
+							}
+							nextAdj = (*it)->nextFaceEdge(nextAdj);
+						} while ((nextAdj != firstAdj) && (nextAdj != nullptr));
+					}
+				}
+			}
+			break;
 			// GAUCHE,DROITE,HAUT,BAS déplace le point sélectionné de 1 case dans la direction de la fleche
 		case GLFW_KEY_LEFT:
 			dx = -1;
+			dy = 0;
 			move_randomly = true;
 			break;
 		case GLFW_KEY_RIGHT:
 			dx = 1;
+			dy = 0;
 			move_randomly = true;
 			break;
 		case GLFW_KEY_DOWN:
 			dy = -1;
+			dx = 0;
 			move_randomly = true;
 			break;
 		case GLFW_KEY_UP:
 			dy = 1;
+			dx = 0;
 			move_randomly = true;
 			break;
 		case GLFW_KEY_1:
@@ -187,7 +212,8 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			show_segments = true;
 			break;
 		case GLFW_KEY_KP_4:
-			specifiqueRouletteRusse = true;
+			//specifiqueRouletteRusse = true;
+			specifiqueRecuitSimule = true;
 			break;
 		case GLFW_KEY_KP_5:
 			show_nodemap = true;
@@ -217,6 +243,9 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 	std::cout << "sommeLong: " << sommeLong << std::endl;
 	std::cout << "sommeLong sommeLong: " << sommeLong2 << std::endl;
 	std::cout << "Variance: " << variance << std::endl;
+
+	// Initialisation des vecteurs de deplacements
+	initListeDeplacements();
 
 	// Chrono pour le temps d'exec, utilisé pour le stockage de donnée pour la création de graphiques, a supprimer lors de vrai tests
 	auto start = std::chrono::system_clock::now();
@@ -297,7 +326,7 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			move_randomly = false;
 		}
 		else if (show_move_variance) {
-			std::vector<std::pair<int, std::pair<int, int>>> vectorProba = rouletteRusseNodeMove(vectorNodeBends[selectedNodeBendNum], GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			rouletteRusseNodeMove(vectorNodeBends[selectedNodeBendNum], GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			show_move_variance = false;
 		}
 		else if (show_variance) {
@@ -325,6 +354,11 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			}
 			checkTime(start, lastWritten, 10, variance, false);
 			checkTour(totalTurn, lastWrittenTurn, 20000, variance, false);
+		}
+		else if (specifiqueRecuitSimule) {
+			specificRecuitSimule(selectedNodeBendNum, coeff, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			modifCoeffRecuit(coeff, coeffDesc, coeffMont, coeffMax, coeffMin, recuitMontant, nbTour, nbTourModifCoeff);
+			specifiqueRecuitSimule = false;
 		}
 		else if (moveRecuitSimule) {
 			selectedNodeBendNum = startRecuitSimule(coeff, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
@@ -395,9 +429,9 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			check_stackability = false;
 		}
 		else if (check_posMap) {
-			std::set<NodeBend*> tmpSet = posVectorNodeBend[*vectorNodeBends[selectedNodeBendNum]->a_x][*vectorNodeBends[selectedNodeBendNum]->a_y];
+			std::list<NodeBend*> tmpList = posVectorNodeBend[*vectorNodeBends[selectedNodeBendNum]->a_x][*vectorNodeBends[selectedNodeBendNum]->a_y];
 			std::cout << "Pos map x: " << *vectorNodeBends[selectedNodeBendNum]->a_x << " y: " << *vectorNodeBends[selectedNodeBendNum]->a_y << std::endl;
-			for (auto it = tmpSet.begin(); it != tmpSet.end(); it++) {
+			for (auto it = tmpList.begin(); it != tmpList.end(); it++) {
 				std::cout << "Node " << (*it)->globalNum << std::endl;
 			}
 			check_posMap = false;

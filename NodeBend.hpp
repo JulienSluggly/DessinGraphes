@@ -89,6 +89,14 @@ public:
 			this->isStacked = (((*precedent->a_x == *this->a_x) && (*precedent->a_y == *this->a_y)) || ((*suivant->a_x == *this->a_x) && (*suivant->a_y == *this->a_y)));
 		}
 	}
+	void initStackCheck() {
+		nbDiffAdjStacked = 0;
+		for (int i = 0; i < adjNodeBend.size(); i++) {
+			if ((*adjNodeBend[i]->a_x == *this->a_x) && (*adjNodeBend[i]->a_y == *this->a_y)) {
+				nbDiffAdjStacked++;
+			}
+		}
+	}
 	void recalculateAdjBendStack() {
 		nbDiffAdjStacked = 0;
 		for (int i = 0; i < adjNodeBend.size(); i++) {
@@ -117,6 +125,10 @@ public:
 		else {
 			return pairAdjFaces;
 		}
+	}
+	// Indique si le nodebend est stacké avec le précédent et le suivant, uniquement pour les bends
+	bool isStuck() {
+		return ((this->getX() == this->precedent->getX()) && (this->getY() == this->precedent->getY()) && (this->getX() == this->suivant->getX()) && (this->getY() == this->suivant->getY()));
 	}
 	// Indique si le nodebend peut se stack avec le nodebend nb
 	bool isStackableWith(NodeBend* nb) {

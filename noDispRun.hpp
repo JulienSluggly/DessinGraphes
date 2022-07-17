@@ -39,6 +39,9 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	prepCalcNVar(sommeLong, sommeLong2, variance);
 	double bestVariance = variance;
 
+	// Initialisation des vecteurs de deplacements
+	initListeDeplacements();
+
 	// Chrono pour le temps d'exec, utilisé pour le stockage de donnée pour la création de graphiques, a supprimer lors de vrai executions
 	auto start = std::chrono::system_clock::now();
 	auto lastWritten = std::chrono::system_clock::now();

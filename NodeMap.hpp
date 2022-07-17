@@ -4,12 +4,12 @@
 #include "NodeBend.hpp"
 extern std::vector<std::vector<bool>> mapPosNode;
 extern std::vector<NodeBend*> vectorNodeBends;
-extern std::vector<std::vector<std::set<NodeBend*>>> posVectorNodeBend;
+extern std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
 extern std::vector<Segment*> vectorSegments;
 extern std::vector<std::vector<Segment*>> vectorFaceSegment;
 
 // Vecteur qui indique la liste des NodeBend a ces coordonnées.
-std::vector<std::vector<std::set<NodeBend*>>> posVectorNodeBend;
+std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
 // Map qui indique si une node ou un bend se trouve a ses coordonnées.
 // mapPosNode[Y][X]
 std::vector<std::vector<bool>> mapPosNode;

@@ -26,7 +26,7 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-2.json";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-1.json";
 	std::cout << "File: " << file << std::endl;
 	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
 	writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
@@ -128,7 +128,12 @@ int main() {
 	// Assign du num global et du tableau de position
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
 		vectorNodeBends[i]->assignGlobalNum(i);
-		posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].insert(vectorNodeBends[i]);
+		if (vectorNodeBends[i]->isNode) {
+			posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].push_front(vectorNodeBends[i]);
+		}
+		else {
+			posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].push_back(vectorNodeBends[i]);
+		}
 	}
 
 	// On initialise le tableau global de segment et la map de face a segment
@@ -193,9 +198,19 @@ int main() {
 		}
 		f = f->succ();
 	}
+
+	// On verifie les données de stacking pour chaque nodebend
+	for (int i = 0; i < vectorNodeBends.size(); i++) {
+		if (vectorNodeBends[i]->isNode) {
+			vectorNodeBends[i]->initStackCheck();
+		}
+		else {
+			vectorNodeBends[i]->recalculateIsStacked();
+		}
+	}
 	
-	// Afichage des numeros et suivants pour debug
-	/*
+	// Affichage des numeros et suivants pour debug
+	
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
 		std::cout << "Numero: " << i << " GlobalNum: " << vectorNodeBends[i]->globalNum << " isNode: " << vectorNodeBends[i]->isNode;
 		if (!vectorNodeBends[i]->isNode) {
@@ -206,7 +221,7 @@ int main() {
 		}
 		std::cout << std::endl;
 	}
-	*/
+	
 
 	// On melange le vecteur de nodebend pour affecter de l'aléatoire sur certains algo
 //	auto rd = std::random_device{};
