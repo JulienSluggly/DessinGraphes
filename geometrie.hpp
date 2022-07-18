@@ -6,6 +6,7 @@ class NodeBend;
 
 class Segment {
 public:
+	int globalNum = 0;
 	int* sourceX;
 	int* sourceY;
 	int* targetX;
@@ -26,6 +27,9 @@ public:
 	}
 	void setTarget(NodeBend* nb) {
 		target = nb;
+	}
+	void assignGlobalNum(int num) {
+		globalNum = num;
 	}
 };
 

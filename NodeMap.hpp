@@ -47,6 +47,7 @@ Segment* getSegmentFromNodeBends(NodeBend* nb1, NodeBend* nb2) {
 			return vectorSegments[i];
 		}
 	}
+	std::cout << "Error n1: " << nb1->globalNum << " nb2: " << nb2->globalNum << std::endl;
 	return nullptr;
 }
 

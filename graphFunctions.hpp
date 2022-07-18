@@ -242,14 +242,15 @@ std::set<edge> getEdgesFromAdjFacesFromNodeBend(NodeBend* n, ConstCombinatorialE
 	return setAllEdges;
 }
 
-std::vector<NodeBend*> getTargetNodeBends(NodeBend* n) {
-	std::vector<NodeBend*> bendPrecSuiv;
+std::vector<Segment*> getTargetNodeBends(NodeBend* n) {
+	std::vector<Segment*> bendPrecSuiv;
 	NodeBend* precedent = n->precedent;
+	NodeBend* last = n;
 	bool found = false;
 	do {
 		if ((precedent->getX() != n->getX()) || (precedent->getY() != n->getY())) {
 			//std::cout << "Precedent x: " << *precedent->a_x << " y: " << *precedent->a_y << std::endl;
-			bendPrecSuiv.push_back(precedent);
+			bendPrecSuiv.push_back(getSegmentFromNodeBends(precedent, last));
 			found = true;
 		}
 		else {
@@ -257,16 +258,18 @@ std::vector<NodeBend*> getTargetNodeBends(NodeBend* n) {
 				found = true;
 			}
 			else {
+				last = precedent;
 				precedent = precedent->precedent;
 			}
 		}
 	} while (!found);
 	NodeBend* suivant = n->suivant;
+	last = n;
 	found = false;
 	do {
-		if ((*suivant->a_x != *n->a_x) || (*suivant->a_y != *n->a_y)) {
+		if ((suivant->getX() != n->getX()) || (suivant->getY() != n->getY())) {
 			//std::cout << "Suivant x: " << *suivant->a_x << " y: " << *suivant->a_y << std::endl;
-			bendPrecSuiv.push_back(suivant);
+			bendPrecSuiv.push_back(getSegmentFromNodeBends(suivant, last));
 			found = true;
 		}
 		else {
@@ -274,6 +277,7 @@ std::vector<NodeBend*> getTargetNodeBends(NodeBend* n) {
 				found = true;
 			}
 			else {
+				last = suivant;
 				suivant = suivant->suivant;
 			}
 		}
@@ -692,7 +696,7 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 	// Pour chaque déplacement, on regarde si il y a une intersection associé
 	int segmentSourceTrgX, segmentSourceTrgY;
 	// Vecteur si le nodebend est un bend pour les potentiels suivants et précédents
-	std::vector<NodeBend*> bendPrecSuiv;
+	std::vector<Segment*> bendPrecSuiv;
 	for (int i = 0; i < vecteurDeplacements.size(); i++) {
 		if (vecteurLegalDeplacements[i]) {
 			int newSrcX = srcX + vecteurDeplacements[i].first;
@@ -722,18 +726,24 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 			// On parcour la liste des adjentry du point de départ
 			int j = 0;
 			NodeBend* target = nullptr;
+			NodeBend* source = n;
 			for (auto it = nodeAdjEntries.begin(); ((it != nodeAdjEntries.end()) && (!intersection)); it++, j++) {
+				Segment* sourceSeg;
 				// On recupere les coordonnées du target du segment
 				if (n->isNode) {
 					//getTargetCoord(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
-					target = getTargetCoordAndNodeBend(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
+					//target = getTargetCoordAndNodeBend(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
+					std::pair<NodeBend*, NodeBend*> tmpPair = n->getFirstSegmentInAdjEntry((*it));
+					sourceSeg = getSegmentFromNodeBends(tmpPair.first,tmpPair.second);
+					source = sourceSeg->source;
+					target = sourceSeg->target;
 					//std::cout << "Target1 Coord x: " << segmentSourceTrgX << " y: " << segmentSourceTrgY << std::endl;
 					//std::cout << "Target2 Coord x: " << *target->a_x << " y: " << *target->a_y << std::endl;
 				}
 				else {
-					target = bendPrecSuiv[j];
-					segmentSourceTrgX = *target->a_x;
-					segmentSourceTrgY = *target->a_y;
+					sourceSeg = bendPrecSuiv[j];
+					source = bendPrecSuiv[j]->source;
+					target = bendPrecSuiv[j]->target;
 				}
 				std::pair<int, int> facesNum = n->getAdjEntryFaces((*it));
 				int nombreFace = 1;
@@ -753,81 +763,66 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 					for (int k = 0; (k < vectorAdjFaceSegments.size()) && (!intersection); k++) {
 						// On vérifie que le segment n'est pas nul
 						if (!vectorAdjFaceSegments[k]->isNull()) {
-							// On regarde si un NodeBend est commun aux deux segments ou s'il y a stacking
-							NodeBend* nodeBendCommun = nullptr;
-							std::pair<NodeBend*, NodeBend*> nodeBendNonCommun;
-							bool is_in = ((newSrcX == vectorAdjFaceSegments[k]->source->getX()) && (newSrcY == vectorAdjFaceSegments[k]->source->getY()));
-							bool is_in2 = ((newSrcX == vectorAdjFaceSegments[k]->target->getX()) && (newSrcY == vectorAdjFaceSegments[k]->target->getY()));
-							bool is_in3 = ((target->getX() == vectorAdjFaceSegments[k]->source->getX()) && (target->getY() == vectorAdjFaceSegments[k]->source->getY()));
-							bool is_in4 = ((target->getX() == vectorAdjFaceSegments[k]->target->getX()) && (target->getY() == vectorAdjFaceSegments[k]->target->getY()));
-							bool same = ((is_in && (is_in3 || is_in4)) || (is_in2 && (is_in3 || is_in4)));
-							bool stack = (is_in || is_in2 || is_in3 || is_in4);
-							//std::cout << "Deplacement: " << i << " stack: " << stack << " same: " << same << " dx " << *n->a_x - srcX << " dy " << *n->a_y - srcY << std::endl;
-							//std::cout << "x1: " << vectorMoveCoord[i].first << " y1: " << vectorMoveCoord[i].second << " x2: " << segmentSourceTrgX << " y2: " << segmentSourceTrgY << " x3: " << *vectorAdjFaceSegments[k]->sourceX << " y3: " << *vectorAdjFaceSegments[k]->sourceY << " x4: " << *vectorAdjFaceSegments[k]->targetX << " y4: " << *vectorAdjFaceSegments[k]->targetY << std::endl;
-							// Si on compare deux segments identique on passe
-							if (same) {
-								// On verifie si on est le meme segment ou superposé completement
-								// Si on passe ce if alors on est superposé mais le segment n'est pas le meme
-								if (!(((vectorAdjFaceSegments[k]->target->globalNum == n->globalNum) && (vectorAdjFaceSegments[k]->source->globalNum == target->globalNum)) || ((vectorAdjFaceSegments[k]->target->globalNum == target->globalNum) && (vectorAdjFaceSegments[k]->source->globalNum == n->globalNum)))) {
-									// On verifie que le segment existe
-									if (!n->isNode) {
-										if ((n->suivant->globalNum == target->globalNum) || (n->precedent->globalNum == target->globalNum)) {
-											intersection = true;
-											//std::cout << "Cas superposition complete" << std::endl;
-											//std::cout << "n " << n->globalNum << " t " << target->globalNum << " v1 " << vectorAdjFaceSegments[k]->source->globalNum << " v2 " << vectorAdjFaceSegments[k]->target->globalNum << std::endl;
+							// On regarde si le segment source est le meme ou non
+							if (sourceSeg->globalNum != vectorAdjFaceSegments[k]->globalNum) {
+								// On regarde si un NodeBend est commun aux deux segments ou s'il y a stacking
+								NodeBend* nodeBendCommun = nullptr;
+								std::pair<NodeBend*, NodeBend*> nodeBendNonCommun;
+								bool is_in = ((source->getX() == vectorAdjFaceSegments[k]->source->getX()) && (source->getY() == vectorAdjFaceSegments[k]->source->getY()));
+								bool is_in2 = ((source->getX() == vectorAdjFaceSegments[k]->target->getX()) && (source->getY() == vectorAdjFaceSegments[k]->target->getY()));
+								bool is_in3 = ((target->getX() == vectorAdjFaceSegments[k]->source->getX()) && (target->getY() == vectorAdjFaceSegments[k]->source->getY()));
+								bool is_in4 = ((target->getX() == vectorAdjFaceSegments[k]->target->getX()) && (target->getY() == vectorAdjFaceSegments[k]->target->getY()));
+								bool same = ((is_in && (is_in3 || is_in4)) || (is_in2 && (is_in3 || is_in4)));
+								bool stack = (is_in || is_in2 || is_in3 || is_in4);
+								//std::cout << "Deplacement: " << i << " stack: " << stack << " same: " << same << " dx " << *n->a_x - srcX << " dy " << *n->a_y - srcY << std::endl;
+								//std::cout << "x1: " << source->getX() << " y1: " << source->getY() << " x2: " << target->getX() << " y2: " << target->getY() << " x3: " << *vectorAdjFaceSegments[k]->sourceX << " y3: " << *vectorAdjFaceSegments[k]->sourceY << " x4: " << *vectorAdjFaceSegments[k]->targetX << " y4: " << *vectorAdjFaceSegments[k]->targetY << std::endl;
+								//std::cout << "Nx1: " << newSrcX << " Ny1: " << newSrcY << " x2: " << target->getX() << " y2: " << target->getY() << " x3: " << vectorAdjFaceSegments[k]->source->getX() << " y3: " << vectorAdjFaceSegments[k]->source->getY() << " x4: " << vectorAdjFaceSegments[k]->target->getX() << " y4: " << vectorAdjFaceSegments[k]->target->getY() << std::endl;
+								//std::cout << "IS1: " << is_in << " IS2: " << is_in2 << " IS3: " << is_in3 << " IS4: " << is_in4 << std::endl;
+								// Si on compare deux segments identiques, intersection
+								if (same) {
+									intersection = true;
+								}
+								else {
+									// Si on a un stacking, il est autorisé donc on regarde uniquement la superposition
+									if (stack) {
+										if (is_in) {
+											nodeBendCommun = vectorAdjFaceSegments[k]->source;
+											nodeBendNonCommun.first = target;
+											nodeBendNonCommun.second = vectorAdjFaceSegments[k]->target;
 										}
-									}
-									else {
-										for (int i = 0; (i < n->adjNodeBend.size()) && !intersection; i++) {
-											if (n->adjNodeBend[i]->globalNum == target->globalNum) {
+										else if (is_in2) {
+											nodeBendCommun = vectorAdjFaceSegments[k]->target;
+											nodeBendNonCommun.first = target;
+											nodeBendNonCommun.second = vectorAdjFaceSegments[k]->source;
+										}
+										else if (is_in3) {
+											nodeBendCommun = vectorAdjFaceSegments[k]->source;
+											nodeBendNonCommun.first = source;
+											nodeBendNonCommun.second = vectorAdjFaceSegments[k]->target;
+										}
+										else if (is_in4) {
+											nodeBendCommun = vectorAdjFaceSegments[k]->target;
+											nodeBendNonCommun.first = source;
+											nodeBendNonCommun.second = vectorAdjFaceSegments[k]->source;
+										}
+										// On teste si les 3 noeuds sont alignés
+										if (aGaucheInt(*nodeBendCommun->a_x, *nodeBendCommun->a_y, *nodeBendNonCommun.first->a_x, *nodeBendNonCommun.first->a_y, *nodeBendNonCommun.second->a_x, *nodeBendNonCommun.second->a_y) == 0) {
+											// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
+											if (!dansRectangle(*nodeBendNonCommun.first->a_x, *nodeBendNonCommun.first->a_y, *nodeBendNonCommun.second->a_x, *nodeBendNonCommun.second->a_y, *nodeBendCommun->a_x, *nodeBendCommun->a_y)) {
 												intersection = true;
-												//std::cout << "Cas superposition complete" << std::endl;
-												//std::cout << "n " << n->globalNum << " t " << target->globalNum << " v1 " << vectorAdjFaceSegments[k]->source->globalNum << " v2 " << vectorAdjFaceSegments[k]->target->globalNum << std::endl;
+												//std::cout << "Cas: 1 i:" << i << " k: " << k << " j: " << j << std::endl;
+												//std::cout << "x1: " << *nodeBendNonCommun.first->a_x << " y1: " << *nodeBendNonCommun.first->a_y << " x2: " << *nodeBendNonCommun.second->a_x << " y2: " << *nodeBendNonCommun.second->a_y << " x3: " << *nodeBendCommun->a_x << " y3: " << *nodeBendCommun->a_y << std::endl;
 											}
 										}
 									}
-								}
-							}
-							else {
-								// Si on a un stacking, il est autorisé donc on regarde uniquement la superposition
-								if (stack) {
-									if (is_in) {
-										nodeBendCommun = vectorAdjFaceSegments[k]->source;
-										nodeBendNonCommun.first = target;
-										nodeBendNonCommun.second = vectorAdjFaceSegments[k]->target;
-									}
-									else if (is_in2) {
-										nodeBendCommun = vectorAdjFaceSegments[k]->target;
-										nodeBendNonCommun.first = target;
-										nodeBendNonCommun.second = vectorAdjFaceSegments[k]->source;
-									}
-									else if (is_in3) {
-										nodeBendCommun = vectorAdjFaceSegments[k]->source;
-										nodeBendNonCommun.first = n;
-										nodeBendNonCommun.second = vectorAdjFaceSegments[k]->target;
-									}
-									else if (is_in4) {
-										nodeBendCommun = vectorAdjFaceSegments[k]->target;
-										nodeBendNonCommun.first = n;
-										nodeBendNonCommun.second = vectorAdjFaceSegments[k]->source;
-									}
-									// On teste si les 3 noeuds sont alignés
-									if (aGaucheInt(*nodeBendCommun->a_x, *nodeBendCommun->a_y, *nodeBendNonCommun.first->a_x, *nodeBendNonCommun.first->a_y, *nodeBendNonCommun.second->a_x, *nodeBendNonCommun.second->a_y) == 0) {
-										// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
-										if (!dansRectangle(*nodeBendNonCommun.first->a_x, *nodeBendNonCommun.first->a_y, *nodeBendNonCommun.second->a_x, *nodeBendNonCommun.second->a_y, *nodeBendCommun->a_x, *nodeBendCommun->a_y)) {
+									// Si aucun stacking on fait le test d'intersection
+									else {
+										// On regarde s'ils se croisent
+										if (seCroisent(source->getX(), source->getY(), target->getX(), target->getY(), *vectorAdjFaceSegments[k]->sourceX, *vectorAdjFaceSegments[k]->sourceY, *vectorAdjFaceSegments[k]->targetX, *vectorAdjFaceSegments[k]->targetY)) {
 											intersection = true;
-											//std::cout << "Cas: 1 i:" << i << " k: " << k << " j: " << j << std::endl;
-											//std::cout << "x1: " << *nodeBendNonCommun.first->a_x << " y1: " << *nodeBendNonCommun.first->a_y << " x2: " << *nodeBendNonCommun.second->a_x << " y2: " << *nodeBendNonCommun.second->a_y << " x3: " << *nodeBendCommun->a_x << " y3: " << *nodeBendCommun->a_y << std::endl;
+											//std::cout << "Cas: 2 i:" << i << " k: " << k << " j: " << j << std::endl;
+											//std::cout << "x1: " << vectorMoveCoord[i].first << " y1: " << vectorMoveCoord[i].second << " x2: " << segmentSourceTrgX << " y2: " << segmentSourceTrgY << " x3: " << *vectorAdjFaceSegments[k]->sourceX << " y3: " << *vectorAdjFaceSegments[k]->sourceY << " x4: " << *vectorAdjFaceSegments[k]->targetX << " y4: " << *vectorAdjFaceSegments[k]->targetY << std::endl;
 										}
-									}
-								}
-								// Si aucun stacking on fait le test d'intersection
-								else {
-									// On regarde s'ils se croisent
-									if (seCroisent(newSrcX, newSrcY, segmentSourceTrgX, segmentSourceTrgY, *vectorAdjFaceSegments[k]->sourceX, *vectorAdjFaceSegments[k]->sourceY, *vectorAdjFaceSegments[k]->targetX, *vectorAdjFaceSegments[k]->targetY)) {
-										intersection = true;
-										//std::cout << "Cas: 2 i:" << i << " k: " << k << " j: " << j << std::endl;
-										//std::cout << "x1: " << vectorMoveCoord[i].first << " y1: " << vectorMoveCoord[i].second << " x2: " << segmentSourceTrgX << " y2: " << segmentSourceTrgY << " x3: " << *vectorAdjFaceSegments[k]->sourceX << " y3: " << *vectorAdjFaceSegments[k]->sourceY << " x4: " << *vectorAdjFaceSegments[k]->targetX << " y4: " << *vectorAdjFaceSegments[k]->targetY << std::endl;
 									}
 								}
 							}

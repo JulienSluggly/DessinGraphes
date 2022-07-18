@@ -26,7 +26,7 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-1.json";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-2.json";
 	std::cout << "File: " << file << std::endl;
 	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
 	writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
@@ -97,20 +97,17 @@ int main() {
 			NodeBend* tmpNodeBend = new NodeBend((*i), e, k, CCE);
 			tmpNodeBend->parent1 = p1;
 			tmpNodeBend->parent2 = p2;
+			if (k == 0) {
+				p1->addAdjNodeBend(tmpNodeBend, GL);
+			}
 			// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
 			if ((tmpNodeBend->getX() == p1->getX())&&(tmpNodeBend->getY() == p1->getY())) {
 				tmpNodeBend->isStacked = true;
 				p1->isStacked = true;
-				if ((k == 0) || (k == bends.size()-1)) {
-					p1->addAdjNodeBend(tmpNodeBend);
-				}
 			}
 			else if ((tmpNodeBend->getX() == p2->getX()) && (tmpNodeBend->getY() == p2->getY())) {
 				tmpNodeBend->isStacked = true;
 				p2->isStacked = true;
-				if ((k == 0) || (k == bends.size() - 1)) {
-					p2->addAdjNodeBend(tmpNodeBend);
-				}
 			}
 			tmpNodeBend->precedent = precedent;
 			if (!precedent->isNode) {
@@ -119,6 +116,7 @@ int main() {
 			i++;
 			if (!i.valid()) {
 				tmpNodeBend->suivant = p2;
+				p2->addAdjNodeBend(tmpNodeBend, GL);
 			}
 			precedent = tmpNodeBend;
 			vectorNodeBends.push_back(tmpNodeBend);
@@ -140,6 +138,7 @@ int main() {
 	face f = CCE.firstFace();
 	std::vector<edge> vectorEdges;
 	vectorEdges.reserve(f->size());
+	int numSegment = 0;
 	while (f != nullptr) {
 		int numeroFace = f->index();
 		// On recupere la liste des edges
@@ -174,6 +173,8 @@ int main() {
 						s = new Segment(srcX, srcY, trgX, trgY);
 						s->setSource(source);
 						s->setTarget(target);
+						s->assignGlobalNum(numSegment);
+						numSegment++;
 						vectorSegments.push_back(s);
 						
 					}
@@ -192,6 +193,8 @@ int main() {
 				s = new Segment(srcX, srcY, trgX, trgY);
 				s->setSource(source);
 				s->setTarget(target);
+				s->assignGlobalNum(numSegment);
+				numSegment++;
 				vectorSegments.push_back(s);
 			}
 			vectorFaceSegment[numeroFace].push_back(s);

@@ -31,6 +31,8 @@ public:
 	std::vector<NodeBend*> adjNodeBend;
 	// Map de l'adjentry aux numeros des faces gauches et droites de l'adjentry, utilisé pour les node
 	std::map<adjEntry, std::pair<int,int>> mapAdjFaces;
+	// Map de l'adjEntry au premier bend voisin, utilisé pour les node
+	std::map<adjEntry, NodeBend*> mapAdjFirstNodeBend;
 	// Numero des faces autour de l'adjEntry, utilisé pour les bends
 	std::pair<int, int> pairAdjFaces;
 	NodeBend(node n, GridLayout& GL, ConstCombinatorialEmbedding& CCE) {
@@ -106,8 +108,38 @@ public:
 			}
 		}
 	}
-	void addAdjNodeBend(NodeBend* nb) {
+	// Utilisé par les node pour recuperer le premier segment non nul de l'adjEntry
+	std::pair<NodeBend*,NodeBend*> getFirstSegmentInAdjEntry(adjEntry adj) {
+		auto it = mapAdjFirstNodeBend.find(adj);
+		NodeBend* nb1 = (*it).second;
+		if ((nb1->getX() != this->getX())||(nb1->getY() != this->getY())) {
+			return std::pair<NodeBend*, NodeBend*>(this, nb1);
+		}
+		else {
+			NodeBend* nb2;
+			if (nb1->suivant->globalNum == this->globalNum) {
+				nb2 = nb1->precedent;
+				while ((nb1->getX() == nb2->getX()) && (nb1->getY() == nb2->getY())) {
+					nb1 = nb2;
+					nb2 = nb2->precedent;
+				}
+			}
+			else {
+				nb2 = nb1->suivant;
+				while ((nb1->getX() == nb2->getX()) && (nb1->getY() == nb2->getY())) {
+					nb1 = nb2;
+					nb2 = nb2->suivant;
+				}
+			}
+			return std::pair<NodeBend*, NodeBend*>(nb1, nb2);
+		}
+	}
+	void addAdjNodeBend(NodeBend* nb, GridLayout GL) {
 		adjNodeBend.push_back(nb);
+		adjEntry tmpAdj = nb->getAdjEntry();
+		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(tmpAdj, nb));
+		tmpAdj = tmpAdj->twin();
+		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(tmpAdj, nb));
 	}
 	// Assigne les numeros des faces adjacentes a l'adjentry
 	void setAdjEntryFaces(adjEntry a, int f1, int f2) {
