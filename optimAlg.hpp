@@ -70,6 +70,46 @@ void writeCsvULL(string nom, unsigned long long data, double variance) {
 	}
 }
 
+// Ecris les infos du graphe dans le fichier csv
+void writeGraphInfo(string nom, string nomGraphe, int gridWidth, int gridHeight, int maxBends, double ratio, double variance) {
+	std::ofstream csv(nom, std::ios::app);
+	if (csv.is_open()) {
+		csv << nomGraphe;
+		csv << '\n';
+		csv << "GridWidth: ";
+		csv << gridWidth;
+		csv << " GridHeight: ";
+		csv << gridHeight;
+		csv << " MaxBends: ";
+		csv << maxBends;
+		csv << '\n';
+		csv << "Ratio depart: ";
+		csv << ratio;
+		csv << " Variance depart: ";
+		csv << variance;
+		csv << '\n';
+		csv.close();
+	}
+}
+
+// Ecris toutes les données dans le fichier csv
+void writeAllData(string nom, unsigned long long nbTour, double variance, double ratio, std::chrono::system_clock::time_point start) {
+	std::ofstream csv(nom, std::ios::app);
+	auto end = std::chrono::system_clock::now();
+	std::chrono::duration<double> secondsTotal = end - start;
+	if (csv.is_open()) {
+		csv << nbTour;
+		csv << "|||";
+		csv << variance;
+		csv << "|||";
+		csv << ratio;
+		csv << "|||";
+		csv << secondsTotal.count();
+		csv << '\n';
+		csv.close();
+	}
+}
+
 // Ecris le nombre de tour et la variance dans un fichier tout les intervalle de tours
 void checkTour(unsigned long long& nbTour, unsigned long long& lastWrittenTour, int intervalle, double variance, bool forceWrite) {
 	nbTour++;

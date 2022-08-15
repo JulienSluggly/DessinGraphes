@@ -142,11 +142,11 @@ bool checkAtLeastOneMove(NodeBend* nb, int gridWidth, int gridHeight) {
 	return false;
 }
 
-// Retourne une valeur réelle comprise dans [0.1,n]
+// Retourne une valeur réelle comprise dans [0.0,n[
 double generateDoubleRand(double n) {
 	std::random_device rd;  // Will be used to obtain a seed for the random number engine
 	std::mt19937 gen(rd()); // Standard mersenne_twister_engine seeded with rd()
-	std::uniform_real_distribution<> dis(0.1, n);
+	std::uniform_real_distribution<> dis(0.0, n);
 	return dis(gen);
 }
 
@@ -1316,7 +1316,15 @@ void specificRecuitSimule(int selectedNodeBendNum,double coeff, GridLayout& GL, 
 // retourne le numero du nodebend choisi, uniquement utile pour l'affichage opengl
 int startRecuitSimule(double coeff, GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
 	// On choisis au hasard un NodeBend
-	int randomNum = generateRand(vectorNodeBends.size()) - 1;
+	double selectNode = generateDoubleRand(1);
+	int randomNum;
+	if ((selectNode < 0.5)||(vectorNodeBends.size() == ccem.getGraph().numberOfNodes())) {
+		randomNum = generateRand(ccem.getGraph().numberOfNodes()) - 1;
+	}
+	else {
+		randomNum = generateRand(vectorNodeBends.size() - ccem.getGraph().numberOfNodes()) - 1 + ccem.getGraph().numberOfNodes();
+	}
+	//int randomNum = generateRand(vectorNodeBends.size()) - 1;
 	//std::cout << "Numero selectionne: " << randomNum << std::endl;
 	NodeBend* nb = movableNodeBend(vectorNodeBends[randomNum]);
 	// Si au moin un deplacement possible

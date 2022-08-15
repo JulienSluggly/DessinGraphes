@@ -17,7 +17,7 @@
 
 // Fait tourner l'algo sélectionné tant qu'il n'a pas une variance de 1 sans affichage openGL
 // i==0 rouletteRusse i==1 recuit simulé
-void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gridHeight, int maxX, int maxY, int maxBends) {
+void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gridHeight, int maxX, int maxY, int maxBends, string nomGraphe) {
 
 	if (i == 0) {
 		std::cout << "Starting Roulette Russe..." << std::endl;
@@ -72,12 +72,13 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	int nbTourDepuisBestVar = 0;
 
 	// On ecris les données de départ
-	writeCsvULL("dataTurn.csv", nbTour, variance);
-	writeCsvDouble("dataTime.csv", 0, variance);
+	//writeCsvULL("dataTurn.csv", nbTour, variance);
+	//writeCsvDouble("dataTime.csv", 0, variance);
 
 	int width, height;
 	double ratio = calcEdgeLengthRatio();
 	double bestRatio = ratio;
+	writeGraphInfo("allData.json", nomGraphe,gridWidth,gridHeight,maxBends,ratio,variance);
 	while (bestRatio > 1.00005) {
 		float ratio;
 		// Roulette russe
@@ -128,12 +129,18 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 		if (ratio < bestRatio) {
 			bestRatio = ratio;
 			writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+			writeAllData("allData.json",nbTour,variance,ratio,start);
 			//checkTime(start, lastWritten, 10, variance,true);
-			checkTour(totalTurn, lastWrittenTurn, 10000, ratio, true);
+			//checkTour(totalTurn, lastWrittenTurn, 10000, ratio, true);
+			std::cout << "New Ratio: " << bestRatio << std::endl;
 		}
-		else {
-			checkTime(start, lastWritten, 10, ratio, false);
-			checkTour(totalTurn, lastWrittenTurn, 10000, ratio, false);
+		//else {
+			//checkTime(start, lastWritten, 10, ratio, false);
+			//checkTour(totalTurn, lastWrittenTurn, 10000, ratio, false);
+		//}
+		nbTour++;
+		if (nbTour % 10000 == 0) {
+			writeAllData("allData.json", nbTour, variance, ratio, start);
 		}
 	}
 }

@@ -1,8 +1,13 @@
 ﻿#include <ogdf/basic/GridLayout.h>
 
 #include <ogdf/planarlayout/PlanarStraightLayout.h>
+#include <ogdf/planarity/EmbedderMaxFace.h>
+#include <ogdf/planarity/EmbedderMaxFaceLayers.h>
 #include <ogdf/planarity/EmbedderMinDepth.h>
+#include <ogdf/planarity/EmbedderMinDepthMaxFace.h>
+#include <ogdf/planarity/EmbedderMinDepthMaxFaceLayers.h>
 #include <ogdf/planarity/SimpleEmbedder.h>
+
 #include <ogdf/basic/simple_graph_alg.h>
 #include <string>
 
@@ -26,27 +31,72 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-2.json";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-4.json";
+	//string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
+
+	bool useOpenGL = true;
+
 	std::cout << "File: " << file << std::endl;
 	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
 	writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
 
-	int maxX = 0, maxY = 0, minX = 100000, minY = 100000;
+	int maxX = gridWidth, maxY = gridHeight, minX = 0, minY = 0;
 
-	bool planarize = false;
+	bool planarize = true;
 	if (planarize) {
+		int specificEmbedding = 1;
 		std::cout << "Planarizing..." << std::endl;
 		PlanarStraightLayout PL;
 		PL.separation(-19);
+
+		if (specificEmbedding > 0) {
+			EmbedderModule* embm = nullptr;
+			switch (specificEmbedding) {
+				case 1:
+					std::cout << "Specific Embedder used: MinDepth" << std::endl;
+					embm = new EmbedderMinDepth();
+					break;
+				case 2:
+					std::cout << "Specific Embedder used: MaxFace" << std::endl;
+					embm = new EmbedderMaxFace();
+					break;
+				case 3:
+					std::cout << "Specific Embedder used: MaxFaceLayers" << std::endl;
+					embm = new EmbedderMaxFaceLayers();
+					break;
+				case 4:
+					std::cout << "Specific Embedder used: MinDepthMaxFace" << std::endl;
+					embm = new EmbedderMinDepthMaxFace();
+					break;
+				case 5:
+					std::cout << "Specific Embedder used: MinDepthMaxFaceLayers" << std::endl;
+					embm = new EmbedderMinDepthMaxFaceLayers();
+					break;
+				default:
+					break;
+			}
+			PL.setEmbedder(embm);
+		}
 		PL.callGrid(G, GL);
 		node n = G.firstNode();
 		while (n != nullptr) {
 			if (GL.x(n) > maxX) maxX = GL.x(n);
 			if (GL.x(n) < minX) minX = GL.x(n);
-			if (GL.y(n) > maxY) maxY = GL.x(n);
-			if (GL.y(n) < minY) minY = GL.x(n);
+			if (GL.y(n) > maxY) maxY = GL.y(n);
+			if (GL.y(n) < minY) minY = GL.y(n);
 			n = n->succ();
 		}
+		std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
+	}
+
+	// Remplissage des tableaux globaux
+	for (int i = 0; i <= maxX+10; i++) {
+		std::vector<std::list<NodeBend*>> tmpVector;
+		for (int j = 0; j <= maxY+10; j++) {
+			std::list<NodeBend*>tmpVector2;
+			tmpVector.push_back(tmpVector2);
+		}
+		posVectorNodeBend.push_back(tmpVector);
 	}
 
 	std::cout << "Embedding..." << std::endl;
@@ -75,6 +125,7 @@ int main() {
 		std::cout << "mapLengthEdgeSet: " << it2->first << std::endl;
 	}*/
 
+	
 	// Ajout des node dans le vector
 	node n = G.firstNode();
 	while (n != nullptr) {
@@ -231,15 +282,13 @@ int main() {
 //	auto rng = std::default_random_engine{ rd() };
 //	std::shuffle(std::begin(vectorNodeBends), std::end(vectorNodeBends), rng);
 
-	bool useOpenGL = true;
-
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));
 	if (useOpenGL) {
 		dispOpenGL(G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
 	}
 	else {
-		runAlgo(1, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
+		runAlgo(10, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends, file);
 	}
 	return 0;
 }

@@ -59,13 +59,13 @@ public:
 		std::pair<int, int> tmpPair(CCE.leftFace(e->adjSource())->index(), CCE.rightFace(e->adjSource())->index());
 		pairAdjFaces = tmpPair;
 	}
-	node getNode() {
+	inline node getNode() {
 		return m_n;
 	}
-	IPoint* getPoint() {
+	inline IPoint* getPoint() {
 		return m_p;
 	}
-	edge getEdge() {
+	inline edge getEdge() {
 		return m_e;
 	}
 	adjEntry getAdjEntry() {
@@ -74,10 +74,10 @@ public:
 		}
 		return nullptr;
 	}
-	int getX() {
+	inline int getX() {
 		return *a_x;
 	}
-	int getY() {
+	inline int getY() {
 		return *a_y;
 	}
 	void assignGlobalNum(int i) {

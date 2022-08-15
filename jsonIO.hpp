@@ -26,24 +26,6 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
 
     // BOOLEEN A CHANGER POUR AJOUTER LE MAXIMUM DE BENDS A CHAQUE EDGE
     bool setMaxBends = true;
-
-    // Remplissage de mapPosNode
-    for (int i = 0; i <= gridHeight; i++) {
-        std::vector<bool> tmpVector;
-        for (int j = 0; j <= gridWidth; j++) {
-            tmpVector.push_back(false);
-        }
-        mapPosNode.push_back(tmpVector);
-        
-    }
-    for (int i = 0; i <= gridWidth; i++) {
-        std::vector<std::list<NodeBend*>> tmpVector2;
-        for (int j = 0; j <= gridHeight; j++) {
-            std::list<NodeBend*>tmpVector3;
-            tmpVector2.push_back(tmpVector3);
-        }
-        posVectorNodeBend.push_back(tmpVector2);
-    }
     if (j["nodes"] == nullptr) {
         exit(1);
     }
@@ -57,32 +39,10 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
         nodeTab[i] = G.newNode();
         GL.x(nodeTab[i]) = j["nodes"][i]["x"];
         GL.y(nodeTab[i]) = j["nodes"][i]["y"];
-        mapPosNode[GL.y(nodeTab[i])][GL.x(nodeTab[i])] = true;
-        //NodeBend tmpNodeBend(nodeTab[i], GL);
-        //vectorNodeBends.push_back(tmpNodeBend);
     }
     int edgeNumber = static_cast<int>(j["edges"].size());
     edge* edgeTab = new edge[edgeNumber];
     for (int i = 0; i < edgeNumber; i++) {
-
-        // DEBUT TEST
-        /*
-        node n1 = nodeTab[j["edges"][i]["source"]];
-        node n2 = nodeTab[j["edges"][i]["target"]];
-        if ((n1->lastAdj() != nullptr) && (n2->lastAdj() != nullptr)) {
-            edgeTab[i] = G.newEdge(n1->lastAdj(), n2->lastAdj());
-        }
-        else if ((n1->lastAdj() == nullptr) && (n2->lastAdj() == nullptr)) {
-            edgeTab[i] = G.newEdge(n1, n2);
-        }
-        else if (n1->lastAdj() == nullptr) {
-            edgeTab[i] = G.newEdge(n1, n2->lastAdj());
-        }
-        else {
-            edgeTab[i] = G.newEdge(n1->lastAdj(), n2);
-        }
-        */
-        // -- FIN TEST
         edgeTab[i] = G.newEdge(nodeTab[j["edges"][i]["source"]], nodeTab[j["edges"][i]["target"]]);
 
         if (j["edges"][i]["bends"] != nullptr) {
@@ -93,10 +53,7 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
                 int bendX = j["edges"][i]["bends"][k]["x"];
                 int bendY = j["edges"][i]["bends"][k]["y"];
                 p.pushBack(IPoint(bendX, bendY));
-                //NodeBend tmpNodeBend(p.back(), edgeTab[i], k);
-                //vectorNodeBends.push_back(tmpNodeBend);
                 // On ajoute les bends dans la nodemap:
-                mapPosNode[bendY][bendX] = true;
             }
             // ON AJOUTE LES BENDS SUPPLEMENTAIRE SUR LE NODE TARGET A LA FIN DES BENDS ORIGINAUX
             if (setMaxBends) {

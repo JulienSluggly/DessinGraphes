@@ -2,7 +2,6 @@
 #define NODEMAP_H
 #include <vector>
 #include "NodeBend.hpp"
-extern std::vector<std::vector<bool>> mapPosNode;
 extern std::vector<NodeBend*> vectorNodeBends;
 extern std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
 extern std::vector<Segment*> vectorSegments;
@@ -10,9 +9,6 @@ extern std::vector<std::vector<Segment*>> vectorFaceSegment;
 
 // Vecteur qui indique la liste des NodeBend a ces coordonnées.
 std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
-// Map qui indique si une node ou un bend se trouve a ses coordonnées.
-// mapPosNode[Y][X]
-std::vector<std::vector<bool>> mapPosNode;
 // Vector qui contient la liste de tout les noeuds et bends d'un graphe
 std::vector<NodeBend*> vectorNodeBends;
 // Vecteur qui stocke tout les segments du graphe
@@ -47,7 +43,7 @@ Segment* getSegmentFromNodeBends(NodeBend* nb1, NodeBend* nb2) {
 			return vectorSegments[i];
 		}
 	}
-	std::cout << "Error n1: " << nb1->globalNum << " nb2: " << nb2->globalNum << std::endl;
+	//std::cout << "Error n1: " << nb1->globalNum << " nb2: " << nb2->globalNum << std::endl;
 	return nullptr;
 }
 
