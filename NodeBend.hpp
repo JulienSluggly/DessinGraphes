@@ -12,21 +12,24 @@ using namespace ogdf;
 
 class NodeBend {
 public:
-	std::map<adjEntry, int> adjBendsStack; // Nombre de bend de cette adjentry stacké sur la node
+	// Nombre de bend de cette adjentry stacké sur la node
+	std::map<adjEntry, int> adjBendsStack; 
+	// Booléen indiquant si le nodebend est un node ou non
 	bool isNode;
-	int* a_x;
-	int* a_y;
+	// Pointeur sur les coordonnée du node ou bend dans l'object Graph
+	int* a_x; int* a_y;
 	int numero; // Numéro du bend dans l'edge
-	int globalNum = 0; // Numero du NodeBend dans le vecteur global de NodeBend
+	// Numero du NodeBend dans le vecteur global de NodeBend
+	int globalNum = 0;
 	bool isStacked = false;
+	// Nombre de nodebend stacké avec celui ci
 	int stack = 0;
 	// indique si des bends de differents adjEntry sont stacké sur un node
 	int nbDiffAdjStacked = 0;
-	// parent1 et 2 pour les bends uniquement
-	NodeBend* parent1 = nullptr;
-	NodeBend* parent2 = nullptr;
-	NodeBend* suivant = nullptr;
-	NodeBend* precedent = nullptr;
+	// parent1 et 2 pour les bends uniquement, ce sont les nodebend source et target de l'edge associé au nodebend
+	NodeBend* parent1 = nullptr; NodeBend* parent2 = nullptr;
+	// suivant et précédent pour les bends uniquements
+	NodeBend* suivant = nullptr; NodeBend* precedent = nullptr;
 	// adjNodeBend pour les node uniquement
 	std::vector<NodeBend*> adjNodeBend;
 	// Map de l'adjentry aux numeros des faces gauches et droites de l'adjentry, utilisé pour les node
@@ -35,6 +38,7 @@ public:
 	std::map<adjEntry, NodeBend*> mapAdjFirstNodeBend;
 	// Numero des faces autour de l'adjEntry, utilisé pour les bends
 	std::pair<int, int> pairAdjFaces;
+	// Constructeur pour les nodes
 	NodeBend(node n, GridLayout& GL, ConstCombinatorialEmbedding& CCE) {
 		isNode = true;
 		m_n = n;
@@ -49,6 +53,7 @@ public:
 			mapAdjFaces.insert(std::pair<adjEntry, std::pair<int,int>>((*it), tmpPair));
 		}
 	}
+	// Constructeur pour les bends
 	NodeBend(IPoint& p, edge e, int num, ConstCombinatorialEmbedding& CCE) {
 		isNode = false;
 		m_p = &p;
@@ -59,15 +64,18 @@ public:
 		std::pair<int, int> tmpPair(CCE.leftFace(e->adjSource())->index(), CCE.rightFace(e->adjSource())->index());
 		pairAdjFaces = tmpPair;
 	}
+	// Uniquement pour les node
 	inline node getNode() {
 		return m_n;
 	}
+	// Uniquement pour les bends
 	inline IPoint* getPoint() {
 		return m_p;
 	}
 	inline edge getEdge() {
 		return m_e;
 	}
+	// Uniquement pour les bends, envoie l'adjEntry associé au point source de l'edge qui est associé au nodebend
 	adjEntry getAdjEntry() {
 		if (!isNode) {
 			return m_e->adjSource();
@@ -80,17 +88,11 @@ public:
 	inline int getY() {
 		return *a_y;
 	}
+	// Numéro global unique du nodebend
 	void assignGlobalNum(int i) {
 		globalNum = i;
 	}
-	void recalculateIsStacked() {
-		if (this->isNode) {
-			this->isStacked = nbDiffAdjStacked > 0;
-		}
-		else {
-			this->isStacked = (((*precedent->a_x == *this->a_x) && (*precedent->a_y == *this->a_y)) || ((*suivant->a_x == *this->a_x) && (*suivant->a_y == *this->a_y)));
-		}
-	}
+	// A appeler sur les node uniquement, indique le nombre d'adjentry différente stacké sur le nodebend
 	void initStackCheck() {
 		nbDiffAdjStacked = 0;
 		for (int i = 0; i < adjNodeBend.size(); i++) {
@@ -99,6 +101,16 @@ public:
 			}
 		}
 	}
+	// Recalcule si le nodebend est stacké ou non, pour un node bien appeler initStackCheck() ou recalculateAdjBendStack() avant a la création/copie de graphe
+	void recalculateIsStacked() {
+		if (this->isNode) {
+			this->isStacked = nbDiffAdjStacked > 0;
+		}
+		else {
+			this->isStacked = (((*precedent->a_x == *this->a_x) && (*precedent->a_y == *this->a_y)) || ((*suivant->a_x == *this->a_x) && (*suivant->a_y == *this->a_y)));
+		}
+	}
+	// A appeler sur les node uniquement, recalcule le nombre d'adjentry différente stacké sur le nodebend en recalculant le stacking des adjentry
 	void recalculateAdjBendStack() {
 		nbDiffAdjStacked = 0;
 		for (int i = 0; i < adjNodeBend.size(); i++) {
@@ -107,6 +119,7 @@ public:
 				nbDiffAdjStacked++;
 			}
 		}
+		this->isStacked = nbDiffAdjStacked > 0;
 	}
 	// Utilisé par les node pour recuperer le premier segment non nul de l'adjEntry
 	std::pair<NodeBend*,NodeBend*> getFirstSegmentInAdjEntry(adjEntry adj) {

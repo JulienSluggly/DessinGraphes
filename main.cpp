@@ -18,6 +18,7 @@
 #include "NodeMap.hpp"
 #include "graphFunctions.hpp"
 #include "noDispRun.hpp"
+#include "classUtils.hpp"
 
 using ogdf::Graph;
 using ogdf::GridLayout;
@@ -42,7 +43,7 @@ int main() {
 
 	int maxX = gridWidth, maxY = gridHeight, minX = 0, minY = 0;
 
-	bool planarize = true;
+	bool planarize = false;
 	if (planarize) {
 		int specificEmbedding = 1;
 		std::cout << "Planarizing..." << std::endl;

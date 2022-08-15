@@ -14,6 +14,7 @@
 #include "NodeBend.hpp"
 #include "optimAlg.hpp"
 #include "jsonIO.hpp"
+#include "classUtils.hpp"
 #include <random>
 
 using namespace ogdf;
@@ -39,6 +40,8 @@ bool check_stackability = false;
 bool check_posMap = false;
 bool show_ratio = false;
 bool save_current = false;
+bool make_copy = false;
+bool apply_copy = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -47,6 +50,7 @@ std::set<face> setFace;
 std::set<edge> setEdge;
 bool showAllEdges = false;
 ConstCombinatorialEmbedding CCE;
+std::map<NodeBend*, std::pair<int, int>> graphCopy;
 
 // Incrément de déplacement du selected node
 int dx, dy;
@@ -229,6 +233,12 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_KP_9:
 			save_current = true;
+			break;
+		case GLFW_KEY_F1:
+			make_copy = true;
+			break;
+		case GLFW_KEY_F2:
+			apply_copy = true;
 			break;
 		}
 }
@@ -451,6 +461,15 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 		}
 		else if (save_current) {
 			writeToJson("currentSave.json", G, GL, gridWidth, gridHeight, maxBends);
+		}
+		else if (make_copy) {
+			graphCopy.clear();
+			graphCopy = copyGraph(vectorNodeBends);
+			make_copy = false;
+		}
+		else if (apply_copy) {
+			applyGraph(graphCopy);
+			apply_copy = false;
 		}
 		else if (show_segments) {
 			std::cout << "Affichage des Segments adjacents du NodeBend: A REFAIRE " << selectedNodeBendNum << std::endl;
