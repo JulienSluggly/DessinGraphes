@@ -622,8 +622,8 @@ bool orderNodeAdjChanged(NodeBend* nb, GridLayout& GL, int newX, int newY) {
 		// On regarde l'ordre de tout les noeuds adjacents
 		for (auto it = nodeAdjEntries.begin(); it.valid(); it++) {
 			node na = (*it)->twinNode();
-			// Uniquement si le degree >=3 l'ordre peut changer et que l'edge ne contient pas de bend
-			if ((!hasBends((*it), GL)) && (na->degree() >= 3)) {
+			// Uniquement si le degree >=3 l'ordre peut changer
+			if (na->degree() >= 3) {
 				adjNodeAdjEntries.clear();
 				adjNodeNewAdjEntriesOrder.clear();
 				adjEntry oppose = (*it)->twin();

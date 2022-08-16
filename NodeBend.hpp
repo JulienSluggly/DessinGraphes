@@ -33,9 +33,9 @@ public:
 	// adjNodeBend pour les node uniquement
 	std::vector<NodeBend*> adjNodeBend;
 	// Map de l'adjentry aux numeros des faces gauches et droites de l'adjentry, utilisé pour les node
-	std::map<adjEntry, std::pair<int,int>> mapAdjFaces;
+	std::unordered_map<adjEntry, std::pair<int,int>> mapAdjFaces;
 	// Map de l'adjEntry au premier bend voisin, utilisé pour les node
-	std::map<adjEntry, NodeBend*> mapAdjFirstNodeBend;
+	std::unordered_map<adjEntry, NodeBend*> mapAdjFirstNodeBend;
 	// Numero des faces autour de l'adjEntry, utilisé pour les bends
 	std::pair<int, int> pairAdjFaces;
 	// Constructeur pour les nodes
