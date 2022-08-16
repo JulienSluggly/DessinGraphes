@@ -2,8 +2,8 @@
 #define NODEMAP_H
 #include <vector>
 #include "NodeBend.hpp"
-extern std::vector<NodeBend*> vectorNodeBends;
 extern std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
+extern std::vector<NodeBend*> vectorNodeBends;
 extern std::vector<Segment*> vectorSegments;
 extern std::vector<std::vector<Segment*>> vectorFaceSegment;
 

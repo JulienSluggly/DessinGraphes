@@ -32,7 +32,8 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/man21-4.json";
+	string nom_fichier = "man21-4";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/" + nom_fichier + ".json";
 	//string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
 	bool useOpenGL = true;
@@ -79,16 +80,17 @@ int main() {
 			PL.setEmbedder(embm);
 		}
 		PL.callGrid(G, GL);
-		node n = G.firstNode();
-		while (n != nullptr) {
-			if (GL.x(n) > maxX) maxX = GL.x(n);
-			if (GL.x(n) < minX) minX = GL.x(n);
-			if (GL.y(n) > maxY) maxY = GL.y(n);
-			if (GL.y(n) < minY) minY = GL.y(n);
-			n = n->succ();
-		}
-		std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
 	}
+
+	node n1 = G.firstNode();
+	while (n1 != nullptr) {
+		if (GL.x(n1) > maxX) maxX = GL.x(n1);
+		if (GL.x(n1) < minX) minX = GL.x(n1);
+		if (GL.y(n1) > maxY) maxY = GL.y(n1);
+		if (GL.y(n1) < minY) minY = GL.y(n1);
+		n1 = n1->succ();
+	}
+	std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
 
 	// Remplissage des tableaux globaux
 	for (int i = 0; i <= maxX+10; i++) {
@@ -286,7 +288,7 @@ int main() {
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));
 	if (useOpenGL) {
-		dispOpenGL(G, GL, gridWidth, gridHeight, maxX, maxY, maxBends);
+		dispOpenGL(G, GL, gridWidth, gridHeight, maxX, maxY, maxBends, nom_fichier);
 	}
 	else {
 		runAlgo(10, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends, file);

@@ -42,6 +42,9 @@ bool show_ratio = false;
 bool save_current = false;
 bool make_copy = false;
 bool apply_copy = false;
+bool change_embedding = false;
+int change_embedding_num = 0;
+bool save_all_embeddings = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -50,7 +53,7 @@ std::set<face> setFace;
 std::set<edge> setEdge;
 bool showAllEdges = false;
 ConstCombinatorialEmbedding CCE;
-std::map<NodeBend*, std::pair<int, int>> graphCopy;
+std::vector<std::pair<int, int>> graphCopy;
 
 // Incrément de déplacement du selected node
 int dx, dy;
@@ -240,10 +243,16 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_F2:
 			apply_copy = true;
 			break;
+		case GLFW_KEY_F3:
+			change_embedding = true;
+			break;
+		case GLFW_KEY_F4:
+			save_all_embeddings = true;
+			break;
 		}
 }
 
-void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHeight, int maxX, int maxY, int maxBends) {
+void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHeight, int maxX, int maxY, int maxBends, string nom_graphe) {
 	//debut ogdf
 	node n = G.firstNode();
 	CCE = ConstCombinatorialEmbedding{ G };
@@ -471,10 +480,57 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			applyGraph(graphCopy);
 			apply_copy = false;
 		}
+		else if (change_embedding) {
+			PlanarStraightLayout PL;
+			PL.separation(-19);
+			EmbedderModule* embm = nullptr;
+			switch (change_embedding_num) {
+			case 0:
+				embm = new EmbedderMinDepth();
+				break;
+			case 1:
+				embm = new EmbedderMaxFace();
+				break;
+			case 2:
+				embm = new EmbedderMaxFaceLayers();
+				break;
+			case 3:
+				embm = new EmbedderMinDepthMaxFace();
+				break;
+			case 4:
+				embm = new EmbedderMinDepthMaxFaceLayers();
+				break;
+			default:
+				break;
+			}
+			PL.setEmbedder(embm);
+			PL.callGrid(G, GL);
+			node n = G.firstNode();
+			while (n != nullptr) {
+				if (GL.x(n) > maxX) maxX = GL.x(n);
+				if (GL.y(n) > maxY) maxY = GL.y(n);
+				n = n->succ();
+			}
+			change_embedding_num = (change_embedding_num + 1) % 5;
+			change_embedding = false;
+		}
+		else if (save_all_embeddings) {
+			saveAllEmbeddings(nom_graphe, G, GL, gridWidth, gridHeight, maxBends);
+			save_all_embeddings = false;
+		}
 		else if (show_segments) {
 			std::cout << "Affichage des Segments adjacents du NodeBend: A REFAIRE " << selectedNodeBendNum << std::endl;
 			show_segments = false;
 		}
+		// affichage de la grille avec une marge de 1
+		glColor3f(0.0f, 1.0f, 0.0f);
+		glBegin(GL_LINE_STRIP);
+		glVertex2d(-1, -1);
+		glVertex2d(gridWidth+1, -1);
+		glVertex2d(gridWidth + 1, gridHeight+1);
+		glVertex2d(-1, gridHeight + 1);
+		glVertex2d(-1, -1);
+		glEnd();
 		//afficher les edge
 		glColor3f(1.0f, 1.0f, 1.0f);
 		for (auto e : G.edges)
