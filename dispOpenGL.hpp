@@ -45,6 +45,7 @@ bool apply_copy = false;
 bool change_embedding = false;
 int change_embedding_num = 0;
 bool save_all_embeddings = false;
+bool startGrilleDescente = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -248,6 +249,9 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 			break;
 		case GLFW_KEY_F4:
 			save_all_embeddings = true;
+			break;
+		case GLFW_KEY_F5:
+			startGrilleDescente = true;
 			break;
 		}
 }
@@ -514,6 +518,10 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			change_embedding_num = (change_embedding_num + 1) % 5;
 			change_embedding = false;
 		}
+		else if (startGrilleDescente) {
+			bool reussi = grilleDescente(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			startGrilleDescente = false;
+		}
 		else if (save_all_embeddings) {
 			saveAllEmbeddings(nom_graphe, G, GL, gridWidth, gridHeight, maxBends);
 			save_all_embeddings = false;
@@ -526,8 +534,8 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 		glColor3f(0.0f, 1.0f, 0.0f);
 		glBegin(GL_LINE_STRIP);
 		glVertex2d(-1, -1);
-		glVertex2d(gridWidth+1, -1);
-		glVertex2d(gridWidth + 1, gridHeight+1);
+		glVertex2d(gridWidth + 1, -1);
+		glVertex2d(gridWidth + 1, gridHeight + 1);
 		glVertex2d(-1, gridHeight + 1);
 		glVertex2d(-1, -1);
 		glEnd();

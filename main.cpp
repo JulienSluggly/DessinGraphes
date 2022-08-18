@@ -32,8 +32,8 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string nom_fichier = "man21-4";
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/manuel/" + nom_fichier + ".json";
+	string nom_fichier = "man21-4_MaxFaceLayers";
+	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/" + nom_fichier + ".json";
 	//string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
 	bool useOpenGL = true;
@@ -133,6 +133,12 @@ int main() {
 	node n = G.firstNode();
 	while (n != nullptr) {
 		NodeBend* tmpNodeBend = new NodeBend(n, GL, CCE);
+		if ((tmpNodeBend->getX() <= gridWidth)&&(tmpNodeBend->getY() <= gridHeight)) {
+			tmpNodeBend->isInGrille = true;
+		}
+		else {
+			tmpNodeBend->isInGrille = false;
+		}
 		vectorNodeBends.push_back(tmpNodeBend);
 		n = n->succ();
 	}
@@ -145,35 +151,41 @@ int main() {
 		NodeBend* p1 = getNodeBendFromNode(e->source());
 		NodeBend* p2 = getNodeBendFromNode(e->target());
 		NodeBend* precedent = p1;
-		for (ListIterator<IPoint> i = bends.begin(); i.valid(); k++) {
-			p1 = getNodeBendFromNode(e->source());
-			p2 = getNodeBendFromNode(e->target());
-			NodeBend* tmpNodeBend = new NodeBend((*i), e, k, CCE);
-			tmpNodeBend->parent1 = p1;
-			tmpNodeBend->parent2 = p2;
-			if (k == 0) {
-				p1->addAdjNodeBend(tmpNodeBend, GL);
+		if (bends.size() != 0) {
+			for (ListIterator<IPoint> i = bends.begin(); i.valid(); k++) {
+				p1 = getNodeBendFromNode(e->source());
+				p2 = getNodeBendFromNode(e->target());
+				NodeBend* tmpNodeBend = new NodeBend((*i), e, k, CCE);
+				tmpNodeBend->parent1 = p1;
+				tmpNodeBend->parent2 = p2;
+				if (k == 0) {
+					p1->addAdjNodeBend(tmpNodeBend, e->adjSource());
+				}
+				// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
+				if ((tmpNodeBend->getX() == p1->getX()) && (tmpNodeBend->getY() == p1->getY())) {
+					tmpNodeBend->isStacked = true;
+					p1->isStacked = true;
+				}
+				else if ((tmpNodeBend->getX() == p2->getX()) && (tmpNodeBend->getY() == p2->getY())) {
+					tmpNodeBend->isStacked = true;
+					p2->isStacked = true;
+				}
+				tmpNodeBend->precedent = precedent;
+				if (!precedent->isNode) {
+					precedent->suivant = tmpNodeBend;
+				}
+				i++;
+				if (!i.valid()) {
+					tmpNodeBend->suivant = p2;
+					p2->addAdjNodeBend(tmpNodeBend, e->adjSource());
+				}
+				precedent = tmpNodeBend;
+				vectorNodeBends.push_back(tmpNodeBend);
 			}
-			// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
-			if ((tmpNodeBend->getX() == p1->getX())&&(tmpNodeBend->getY() == p1->getY())) {
-				tmpNodeBend->isStacked = true;
-				p1->isStacked = true;
-			}
-			else if ((tmpNodeBend->getX() == p2->getX()) && (tmpNodeBend->getY() == p2->getY())) {
-				tmpNodeBend->isStacked = true;
-				p2->isStacked = true;
-			}
-			tmpNodeBend->precedent = precedent;
-			if (!precedent->isNode) {
-				precedent->suivant = tmpNodeBend;
-			}
-			i++;
-			if (!i.valid()) {
-				tmpNodeBend->suivant = p2;
-				p2->addAdjNodeBend(tmpNodeBend, GL);
-			}
-			precedent = tmpNodeBend;
-			vectorNodeBends.push_back(tmpNodeBend);
+		}
+		else {
+			p1->addAdjNodeBend(p2, e->adjSource());
+			p2->addAdjNodeBend(p1, e->adjSource());
 		}
 		e = e->succ();
 	}
@@ -278,7 +290,18 @@ int main() {
 		}
 		std::cout << std::endl;
 	}
-	
+
+	// VERIF A SUPPRIMER
+	/*
+	for (int i = 0; i < vectorNodeBends.size(); i++) {
+		for (int j = 0; j < vectorNodeBends.size(); j++) {
+			if (i != j) {
+				if ((vectorNodeBends[i]->getX() == vectorNodeBends[j]->getX()) && (vectorNodeBends[i]->getY() == vectorNodeBends[j]->getY())) {
+					std::cout << i << " et " << j << " sont stackes." << std::endl;
+				}
+			}
+		}
+	}*/
 
 	// On melange le vecteur de nodebend pour affecter de l'aléatoire sur certains algo
 //	auto rd = std::random_device{};

@@ -84,6 +84,16 @@ void checkDebordement(NodeBend* n, int gridWidth, int gridHeight) {
 	}
 }
 
+// Fonction qui modifie les booleen de vecteurLegalDeplacements en fonction de si le deplacement resulte avec une coordonnee negative
+void checkDebordementNegatif(NodeBend* n) {
+	int srcX = n->getX();
+	int srcY = n->getY();
+	for (int i = 0; i < vecteurDeplacements.size(); i++) {
+		vecteurLegalDeplacements[i] = ((srcX + vecteurDeplacements[i].first >= 0) && (srcY + vecteurDeplacements[i].second >= 0));
+		//std::cout << "sx: " << srcX << " sy: " << srcY << " nx: " << srcX + vecteurDeplacements[i].first << " ny: " << srcY + vecteurDeplacements[i].second << " autorised: " << vecteurLegalDeplacements[i] << std::endl;
+	}
+}
+
 // Fonction qui modifie les booleen de vecteurLegalDeplacements en fonction de si le deplacement provoque un empilement non autorisé du NodeBend sur un autre NodeBend
 // Cette fonction utilise la grille de NodeBend et ne doit etre utilisée uniquement si le graphe est en place et le stacking autorisé
 // Appeler cette fonction APRES avoir appeller checkDebordement();
@@ -727,12 +737,10 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 			int j = 0;
 			NodeBend* target = nullptr;
 			NodeBend* source = n;
-			for (auto it = nodeAdjEntries.begin(); ((it != nodeAdjEntries.end()) && (!intersection)); it++, j++) {
+			for (auto it = nodeAdjEntries.begin(); ((it.valid()) && (!intersection)); it++, j++) {
 				Segment* sourceSeg;
 				// On recupere les coordonnées du target du segment
 				if (n->isNode) {
-					//getTargetCoord(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
-					//target = getTargetCoordAndNodeBend(GL, (*it), segmentSourceTrgX, segmentSourceTrgY);
 					std::pair<NodeBend*, NodeBend*> tmpPair = n->getFirstSegmentInAdjEntry((*it));
 					sourceSeg = getSegmentFromNodeBends(tmpPair.first,tmpPair.second);
 					source = sourceSeg->source;
@@ -1509,6 +1517,62 @@ int startShortestLength(GridLayout& GL, ConstCombinatorialEmbedding& ccem, int n
 	}
 	//std::cout << "Nouvelle variance " << variance << std::endl;
 	return numCourant;
+}
+
+// Algorithme qui renvoie vrai ou faux selon s'il a réussi a mettre le graphe dans la grille
+// Descente simple
+bool grilleDescente(GridLayout& GL, ConstCombinatorialEmbedding& ccem, double& sommeLong, double& sommeLong2, double& variance, int gridHeight, int gridWidth) {
+	int nbNodeHorsGrille = 0;
+	for (int i = 0; i < vectorNodeBends.size(); i++) {
+		if (!vectorNodeBends[i]->isInGrille) {
+			nbNodeHorsGrille++;
+		}
+	}
+
+	int numero = 1;
+	int lastNumMoved = 0;
+	while (nbNodeHorsGrille > 0) {
+		if (numero == lastNumMoved) {
+			break;
+		}
+		NodeBend* nb = vectorNodeBends[numero];
+		checkDebordementNegatif(nb);
+		checkStacking(nb);
+		atLeastOneMove = getLegalMoves(nb, GL, ccem);
+		if (atLeastOneMove) {
+			double shortestDistance = 999999;
+			double distanceActuelle = pow(0 - nb->getX(), 2) + pow(0 - nb->getY(), 2);
+			int choix = -1;
+			// Boucle sur tout les déplacements possibles
+			for (int i = 0; i < vecteurDeplacements.size(); i++) {
+				// On regarde si le déplacement est autorisé (si on ne se déplace par sur une node ou un bend)
+				if (vecteurLegalDeplacements[i]) {
+					int newX = nb->getX() + vecteurDeplacements[i].first;
+					int newY = nb->getY() + vecteurDeplacements[i].second;
+					double distance = pow(0 - newX, 2) + pow(0 - newY, 2);
+					if (distance < distanceActuelle) {
+						choix = i;
+						if (distance < shortestDistance) {
+							shortestDistance = distance;
+						}
+					}
+					vecteurVarChangeMove[i] = distance;
+				}
+			}
+			if (choix != -1) {
+				int newX = nb->getX() + vecteurDeplacements[choix].first;
+				int newY = nb->getY() + vecteurDeplacements[choix].second;
+				changeVariance(nb, GL, newX, newY, sommeLong, sommeLong2, variance);
+				moveNodeBend(nb, newX, newY);
+				lastNumMoved = numero;
+			}
+		}
+		numero++;
+		if (numero >= vectorNodeBends.size()) {
+			numero = 0;
+		}
+	}
+	return (nbNodeHorsGrille > 0);
 }
 
 // Calcul le ratio edge/length. longueur la plus grande divisé par la longueur la plus courte.

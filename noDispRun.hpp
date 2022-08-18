@@ -79,27 +79,68 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	double ratio = calcEdgeLengthRatio();
 	double bestRatio = ratio;
 	writeGraphInfo("allData.json", nomGraphe,gridWidth,gridHeight,maxBends,ratio,variance);
-	while (bestRatio > 1.00005) {
-		float ratio;
-		// Roulette russe
-		if (i == 0) {
+	// Roulette russe
+	if (i == 0) {
+		while (bestRatio > 1.00005) {
 			startRouletteRusse(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			// Sauvegarde du nouveau meilleur graphe best ratio
+			ratio = calcEdgeLengthRatio();
+			if (ratio < bestRatio) {
+				bestRatio = ratio;
+				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+				std::cout << "New Ratio: " << bestRatio << std::endl;
+			}
+			nbTour++;
+			if (nbTour % 10000 == 0) {
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+			}
 		}
-		// Recuit simulé
-		else if (i == 1) {
+	}
+	// Recuit simulé
+	else if (i == 1) {
+		while (bestRatio > 1.00005) {
 			startRecuitSimule(coeff, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			modifCoeffRecuit(coeff, coeffDesc, coeffMont, coeffMax, coeffMin, recuitMontant, nbTour, nbTourModifCoeff);
+			// Sauvegarde du nouveau meilleur graphe best ratio
+			ratio = calcEdgeLengthRatio();
+			if (ratio < bestRatio) {
+				bestRatio = ratio;
+				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+				std::cout << "New Ratio: " << bestRatio << std::endl;
+			}
+			nbTour++;
+			if (nbTour % 10000 == 0) {
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+			}
 		}
-		// Best Variance
-		else if (i == 2) {
+	}
+	// Best Variance
+	else if (i == 2) {
+		while (bestRatio > 1.00005) {
 			if (numLastMoved == numCourant) {
 				break;
 			}
 			startBestVariance(GL, CCE, numCourant, numLastMoved, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			numCourant = (numCourant + 1) % vectorNodeBends.size();
+			// Sauvegarde du nouveau meilleur graphe best ratio
+			ratio = calcEdgeLengthRatio();
+			if (ratio < bestRatio) {
+				bestRatio = ratio;
+				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+				std::cout << "New Ratio: " << bestRatio << std::endl;
+			}
+			nbTour++;
+			if (nbTour % 10000 == 0) {
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+			}
 		}
-		// Mixe recuit et bestVariance
-		else if (i == 10) {
+	}
+	// Mixe recuit et bestVariance
+	else if (i == 10) {
+		while (bestRatio > 1.00005) {
 			if (nbTourDepuisBestVar < 5000) {
 				startRecuitSimule(coeff, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 				modifCoeffRecuit(coeff, coeffDesc, coeffMont, coeffMax, coeffMin, recuitMontant, nbTour, nbTourModifCoeff);
@@ -112,35 +153,18 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 				startBestVariance(GL, CCE, numCourant, numLastMoved, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 				numCourant = (numCourant + 1) % vectorNodeBends.size();
 			}
-		}
-		// Sauvegarde du nouveau meilleur graphe
-		/*if (variance < bestVariance) {
-			bestVariance = variance;
-			writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
-			//checkTime(start, lastWritten, 10, variance,true);
-			checkTour(totalTurn, lastWrittenTurn, 10000, variance,true);
-		}
-		else {
-			checkTime(start, lastWritten, 10, variance,false);
-			checkTour(totalTurn, lastWrittenTurn, 10000, variance,false);
-		}*/
-		// Sauvegarde du nouveau meilleur graphe best ratio
-		ratio = calcEdgeLengthRatio();
-		if (ratio < bestRatio) {
-			bestRatio = ratio;
-			writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
-			writeAllData("allData.json",nbTour,variance,ratio,start);
-			//checkTime(start, lastWritten, 10, variance,true);
-			//checkTour(totalTurn, lastWrittenTurn, 10000, ratio, true);
-			std::cout << "New Ratio: " << bestRatio << std::endl;
-		}
-		//else {
-			//checkTime(start, lastWritten, 10, ratio, false);
-			//checkTour(totalTurn, lastWrittenTurn, 10000, ratio, false);
-		//}
-		nbTour++;
-		if (nbTour % 10000 == 0) {
-			writeAllData("allData.json", nbTour, variance, ratio, start);
+			// Sauvegarde du nouveau meilleur graphe best ratio
+			ratio = calcEdgeLengthRatio();
+			if (ratio < bestRatio) {
+				bestRatio = ratio;
+				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+				std::cout << "New Ratio: " << bestRatio << std::endl;
+			}
+			nbTour++;
+			if (nbTour % 10000 == 0) {
+				writeAllData("allData.json", nbTour, variance, ratio, start);
+			}
 		}
 	}
 }

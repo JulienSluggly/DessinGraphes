@@ -18,10 +18,13 @@ public:
 	bool isNode;
 	// Pointeur sur les coordonnée du node ou bend dans l'object Graph
 	int* a_x; int* a_y;
-	int numero; // Numéro du bend dans l'edge
+	// Numéro du bend dans l'edge, -1 pour les nodes
+	int numero;
 	// Numero du NodeBend dans le vecteur global de NodeBend
 	int globalNum = 0;
 	bool isStacked = false;
+	// Indique si le NodeBend est dans la grille ou non
+	bool isInGrille;
 	// Nombre de nodebend stacké avec celui ci
 	int stack = 0;
 	// indique si des bends de differents adjEntry sont stacké sur un node
@@ -147,12 +150,11 @@ public:
 			return std::pair<NodeBend*, NodeBend*>(nb1, nb2);
 		}
 	}
-	void addAdjNodeBend(NodeBend* nb, GridLayout GL) {
+	// Si nb est un bend on prend la sienne sinon on prend celle passé en parametre
+	void addAdjNodeBend(NodeBend* nb, adjEntry adj) {
 		adjNodeBend.push_back(nb);
-		adjEntry tmpAdj = nb->getAdjEntry();
-		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(tmpAdj, nb));
-		tmpAdj = tmpAdj->twin();
-		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(tmpAdj, nb));
+		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj, nb));
+		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj->twin(), nb));
 	}
 	// Assigne les numeros des faces adjacentes a l'adjentry
 	void setAdjEntryFaces(adjEntry a, int f1, int f2) {
