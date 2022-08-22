@@ -741,7 +741,7 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 				Segment* sourceSeg;
 				// On recupere les coordonnées du target du segment
 				if (n->isNode) {
-					std::pair<NodeBend*, NodeBend*> tmpPair = n->getFirstSegmentInAdjEntry((*it));
+					std::pair<NodeBend*, NodeBend*> tmpPair = getFirstSegmentInAdjEntry((*it), n);
 					sourceSeg = getSegmentFromNodeBends(tmpPair.first,tmpPair.second);
 					source = sourceSeg->source;
 					target = sourceSeg->target;
@@ -753,7 +753,7 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 					source = bendPrecSuiv[j]->source;
 					target = bendPrecSuiv[j]->target;
 				}
-				std::pair<int, int> facesNum = n->getAdjEntryFaces((*it));
+				std::pair<int, int> facesNum = getAdjEntryFaces((*it));
 				int nombreFace = 1;
 				if (facesNum.first != facesNum.second) {
 					nombreFace++;

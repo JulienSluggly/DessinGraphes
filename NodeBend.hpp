@@ -13,7 +13,7 @@ using namespace ogdf;
 class NodeBend {
 public:
 	// Nombre de bend de cette adjentry stacké sur la node
-	std::map<adjEntry, int> adjBendsStack; 
+	//std::unordered_map<adjEntry, int> adjBendsStack; 
 	// Booléen indiquant si le nodebend est un node ou non
 	bool isNode;
 	// Pointeur sur les coordonnée du node ou bend dans l'object Graph
@@ -35,12 +35,6 @@ public:
 	NodeBend* suivant = nullptr; NodeBend* precedent = nullptr;
 	// adjNodeBend pour les node uniquement
 	std::vector<NodeBend*> adjNodeBend;
-	// Map de l'adjentry aux numeros des faces gauches et droites de l'adjentry, utilisé pour les node
-	std::unordered_map<adjEntry, std::pair<int,int>> mapAdjFaces;
-	// Map de l'adjEntry au premier bend voisin, utilisé pour les node
-	std::unordered_map<adjEntry, NodeBend*> mapAdjFirstNodeBend;
-	// Numero des faces autour de l'adjEntry, utilisé pour les bends
-	std::pair<int, int> pairAdjFaces;
 	// Constructeur pour les nodes
 	NodeBend(node n, GridLayout& GL, ConstCombinatorialEmbedding& CCE) {
 		isNode = true;
@@ -48,13 +42,6 @@ public:
 		a_x = &GL.x(n);
 		a_y = &GL.y(n);
 		numero = -1;
-		ListPure<adjEntry> nodeAdjEntries;
-		n->allAdjEntries(nodeAdjEntries);
-		for (auto it = nodeAdjEntries.begin(); it.valid(); it++) {
-			adjBendsStack.insert(std::pair<adjEntry, int>((*it), 0));
-			std::pair<int,int> tmpPair(CCE.leftFace((*it))->index(), CCE.rightFace((*it))->index());
-			mapAdjFaces.insert(std::pair<adjEntry, std::pair<int,int>>((*it), tmpPair));
-		}
 	}
 	// Constructeur pour les bends
 	NodeBend(IPoint& p, edge e, int num, ConstCombinatorialEmbedding& CCE) {
@@ -64,8 +51,6 @@ public:
 		a_x = &p.m_x;
 		a_y = &p.m_y;
 		numero = num;
-		std::pair<int, int> tmpPair(CCE.leftFace(e->adjSource())->index(), CCE.rightFace(e->adjSource())->index());
-		pairAdjFaces = tmpPair;
 	}
 	// Uniquement pour les node
 	inline node getNode() {
@@ -124,55 +109,6 @@ public:
 		}
 		this->isStacked = nbDiffAdjStacked > 0;
 	}
-	// Utilisé par les node pour recuperer le premier segment non nul de l'adjEntry
-	std::pair<NodeBend*,NodeBend*> getFirstSegmentInAdjEntry(adjEntry adj) {
-		auto it = mapAdjFirstNodeBend.find(adj);
-		NodeBend* nb1 = (*it).second;
-		if ((nb1->getX() != this->getX())||(nb1->getY() != this->getY())) {
-			return std::pair<NodeBend*, NodeBend*>(this, nb1);
-		}
-		else {
-			NodeBend* nb2;
-			if (nb1->suivant->globalNum == this->globalNum) {
-				nb2 = nb1->precedent;
-				while ((nb1->getX() == nb2->getX()) && (nb1->getY() == nb2->getY())) {
-					nb1 = nb2;
-					nb2 = nb2->precedent;
-				}
-			}
-			else {
-				nb2 = nb1->suivant;
-				while ((nb1->getX() == nb2->getX()) && (nb1->getY() == nb2->getY())) {
-					nb1 = nb2;
-					nb2 = nb2->suivant;
-				}
-			}
-			return std::pair<NodeBend*, NodeBend*>(nb1, nb2);
-		}
-	}
-	// Si nb est un bend on prend la sienne sinon on prend celle passé en parametre
-	void addAdjNodeBend(NodeBend* nb, adjEntry adj) {
-		adjNodeBend.push_back(nb);
-		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj, nb));
-		mapAdjFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj->twin(), nb));
-	}
-	// Assigne les numeros des faces adjacentes a l'adjentry
-	void setAdjEntryFaces(adjEntry a, int f1, int f2) {
-		auto it = mapAdjFaces.find(a);
-		if (it != mapAdjFaces.end())
-			it->second.first = f1;
-		it->second.second = f2;
-	}
-	// Recupere les numeros des faces liées a l'adjentry
-	std::pair<int, int> getAdjEntryFaces(adjEntry a) {
-		if (this->isNode) {
-			auto it = mapAdjFaces.find(a);
-			return (it->second);
-		}
-		else {
-			return pairAdjFaces;
-		}
-	}
 	// Indique si le nodebend est stacké avec le précédent et le suivant, uniquement pour les bends
 	bool isStuck() {
 		return ((this->getX() == this->precedent->getX()) && (this->getY() == this->precedent->getY()) && (this->getX() == this->suivant->getX()) && (this->getY() == this->suivant->getY()));
@@ -192,7 +128,7 @@ public:
 				}
 				else {
 					for (int i = 0; i < this->adjNodeBend.size(); i++) {
-						if ((*nb->a_x == *this->adjNodeBend[i]->a_x)&&(*nb->a_y == *this->adjNodeBend[i]->a_y)) {
+						if ((*nb->a_x == *this->adjNodeBend[i]->a_x) && (*nb->a_y == *this->adjNodeBend[i]->a_y)) {
 							return true;
 						}
 					}

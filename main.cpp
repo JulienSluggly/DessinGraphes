@@ -11,7 +11,6 @@
 #include <ogdf/basic/simple_graph_alg.h>
 #include <string>
 
-
 #include "jsonIO.hpp"
 #include "dispOpenGL.hpp"
 #include "EdgeMap.hpp"
@@ -32,9 +31,9 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string nom_fichier = "man21-4_MaxFaceLayers";
-	string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/" + nom_fichier + ".json";
-	//string file = "F:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
+	string nom_fichier = "man21-1";
+	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/manuel/" + nom_fichier + ".json";
+	//string file = "D:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
 	bool useOpenGL = true;
 
@@ -54,28 +53,28 @@ int main() {
 		if (specificEmbedding > 0) {
 			EmbedderModule* embm = nullptr;
 			switch (specificEmbedding) {
-				case 1:
-					std::cout << "Specific Embedder used: MinDepth" << std::endl;
-					embm = new EmbedderMinDepth();
-					break;
-				case 2:
-					std::cout << "Specific Embedder used: MaxFace" << std::endl;
-					embm = new EmbedderMaxFace();
-					break;
-				case 3:
-					std::cout << "Specific Embedder used: MaxFaceLayers" << std::endl;
-					embm = new EmbedderMaxFaceLayers();
-					break;
-				case 4:
-					std::cout << "Specific Embedder used: MinDepthMaxFace" << std::endl;
-					embm = new EmbedderMinDepthMaxFace();
-					break;
-				case 5:
-					std::cout << "Specific Embedder used: MinDepthMaxFaceLayers" << std::endl;
-					embm = new EmbedderMinDepthMaxFaceLayers();
-					break;
-				default:
-					break;
+			case 1:
+				std::cout << "Specific Embedder used: MinDepth" << std::endl;
+				embm = new EmbedderMinDepth();
+				break;
+			case 2:
+				std::cout << "Specific Embedder used: MaxFace" << std::endl;
+				embm = new EmbedderMaxFace();
+				break;
+			case 3:
+				std::cout << "Specific Embedder used: MaxFaceLayers" << std::endl;
+				embm = new EmbedderMaxFaceLayers();
+				break;
+			case 4:
+				std::cout << "Specific Embedder used: MinDepthMaxFace" << std::endl;
+				embm = new EmbedderMinDepthMaxFace();
+				break;
+			case 5:
+				std::cout << "Specific Embedder used: MinDepthMaxFaceLayers" << std::endl;
+				embm = new EmbedderMinDepthMaxFaceLayers();
+				break;
+			default:
+				break;
 			}
 			PL.setEmbedder(embm);
 		}
@@ -92,10 +91,11 @@ int main() {
 	}
 	std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
 
+
 	// Remplissage des tableaux globaux
-	for (int i = 0; i <= maxX+10; i++) {
+	for (int i = 0; i <= maxX + 10; i++) {
 		std::vector<std::list<NodeBend*>> tmpVector;
-		for (int j = 0; j <= maxY+10; j++) {
+		for (int j = 0; j <= maxY + 10; j++) {
 			std::list<NodeBend*>tmpVector2;
 			tmpVector.push_back(tmpVector2);
 		}
@@ -107,33 +107,21 @@ int main() {
 	std::cout << "Embeded: " << G.representsCombEmbedding() << std::endl;
 
 	ConstCombinatorialEmbedding CCE{ G };
-	vectorFaceSegment.reserve(CCE.maxFaceIndex()+1);
+	vectorFaceSegment.reserve(CCE.maxFaceIndex() + 1);
 	for (int i = 0; i < vectorFaceSegment.capacity(); i++) {
 		std::vector<Segment*> tmpVecSegment;
 		vectorFaceSegment.push_back(tmpVecSegment);
 	}
-	//GraphIO::write(GL, "output-ERDiagram2.svg", GraphIO::drawSVG);
+
 	std::cout << "Connexe: " << isConnected(G) << std::endl;
 	std::cout << "Planaire: " << isPlanar(G) << std::endl;
 
-	// Affichage des maps
 
-	/*std::map<edge, double>::iterator it;
-	for (it = mapEdgeLength.begin(); it != mapEdgeLength.end(); it++) {
-		std::cout << "MapEdgeLength: " << it->second << std::endl;
-	}
-
-	std::map<double, std::set<edge>>::iterator it2;
-	for (it2 = mapLengthEdgeSet.begin(); it2 != mapLengthEdgeSet.end(); it2++) {
-		std::cout << "mapLengthEdgeSet: " << it2->first << std::endl;
-	}*/
-
-	
 	// Ajout des node dans le vector
 	node n = G.firstNode();
 	while (n != nullptr) {
 		NodeBend* tmpNodeBend = new NodeBend(n, GL, CCE);
-		if ((tmpNodeBend->getX() <= gridWidth)&&(tmpNodeBend->getY() <= gridHeight)) {
+		if ((tmpNodeBend->getX() <= gridWidth) && (tmpNodeBend->getY() <= gridHeight)) {
 			tmpNodeBend->isInGrille = true;
 		}
 		else {
@@ -151,6 +139,11 @@ int main() {
 		NodeBend* p1 = getNodeBendFromNode(e->source());
 		NodeBend* p2 = getNodeBendFromNode(e->target());
 		NodeBend* precedent = p1;
+		adjEntry adj1 = e->adjSource();
+		adjEntry adj2 = e->adjTarget();
+		std::pair<int, int> tmpPair(CCE.leftFace(adj1)->index(), CCE.rightFace(adj1)->index());
+		mapAdjEntryFaces.insert(std::pair<adjEntry, std::pair<int, int>>(adj1, tmpPair));
+		mapAdjEntryFaces.insert(std::pair<adjEntry, std::pair<int, int>>(adj2, tmpPair));
 		if (bends.size() != 0) {
 			for (ListIterator<IPoint> i = bends.begin(); i.valid(); k++) {
 				p1 = getNodeBendFromNode(e->source());
@@ -159,7 +152,7 @@ int main() {
 				tmpNodeBend->parent1 = p1;
 				tmpNodeBend->parent2 = p2;
 				if (k == 0) {
-					p1->addAdjNodeBend(tmpNodeBend, e->adjSource());
+					mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj1, tmpNodeBend));
 				}
 				// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
 				if ((tmpNodeBend->getX() == p1->getX()) && (tmpNodeBend->getY() == p1->getY())) {
@@ -177,15 +170,15 @@ int main() {
 				i++;
 				if (!i.valid()) {
 					tmpNodeBend->suivant = p2;
-					p2->addAdjNodeBend(tmpNodeBend, e->adjSource());
+					mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj2, tmpNodeBend));
 				}
 				precedent = tmpNodeBend;
 				vectorNodeBends.push_back(tmpNodeBend);
 			}
 		}
 		else {
-			p1->addAdjNodeBend(p2, e->adjSource());
-			p2->addAdjNodeBend(p1, e->adjSource());
+			mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj1, p2));
+			mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj2, p1));
 		}
 		e = e->succ();
 	}
@@ -221,7 +214,7 @@ int main() {
 		NodeBend* source = nullptr;
 		NodeBend* target = nullptr;
 		Segment* s = nullptr;
-		for (int i = 0;i<vectorEdges.size();i++) {
+		for (int i = 0; i < vectorEdges.size(); i++) {
 			srcX = &GL.x(vectorEdges[i]->source());
 			srcY = &GL.y(vectorEdges[i]->source());
 			source = getNodeBendFromNode(vectorEdges[i]->source());
@@ -242,7 +235,7 @@ int main() {
 						s->assignGlobalNum(numSegment);
 						numSegment++;
 						vectorSegments.push_back(s);
-						
+
 					}
 					vectorFaceSegment[numeroFace].push_back(s);
 					srcX = trgX;
@@ -277,9 +270,9 @@ int main() {
 			vectorNodeBends[i]->recalculateIsStacked();
 		}
 	}
-	
+
 	// Affichage des numeros et suivants pour debug
-	
+
 	for (int i = 0; i < vectorNodeBends.size(); i++) {
 		std::cout << "Numero: " << i << " GlobalNum: " << vectorNodeBends[i]->globalNum << " isNode: " << vectorNodeBends[i]->isNode;
 		if (!vectorNodeBends[i]->isNode) {
@@ -302,11 +295,6 @@ int main() {
 			}
 		}
 	}*/
-
-	// On melange le vecteur de nodebend pour affecter de l'aléatoire sur certains algo
-//	auto rd = std::random_device{};
-//	auto rng = std::default_random_engine{ rd() };
-//	std::shuffle(std::begin(vectorNodeBends), std::end(vectorNodeBends), rng);
 
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));

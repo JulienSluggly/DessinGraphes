@@ -38,6 +38,7 @@ void applyGraph(std::vector<std::pair<int, int>> vectorNodeCoord) {
 
 // Enregistre les différents embedding d'un graphe dans les fichiers json correspondants
 void saveAllEmbeddings(string output, Graph& G, GridLayout& GL, int gridWidth, int gridHeight, int maxBends) {
+	std::cout << "Saving embeddings" << std::endl;
 	std::vector<std::pair<string, EmbedderModule*>> vectorEmbedding;
 	vectorEmbedding.push_back(std::make_pair("MinDepth", new EmbedderMinDepth()));
 	vectorEmbedding.push_back(std::make_pair("MaxFace", new EmbedderMaxFace()));
