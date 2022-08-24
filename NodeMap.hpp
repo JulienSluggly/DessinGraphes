@@ -80,6 +80,28 @@ std::pair<NodeBend*, NodeBend*> getFirstSegmentInAdjEntry(adjEntry adj, NodeBend
 		return std::pair<NodeBend*, NodeBend*>(nb1, nb2);
 	}
 }
+
+// Utilisé par les node pour retourner le premier nodebend non stacké sur le node de départ dans une adjentry
+NodeBend* getFirstNonStackedNodeBendInAdjEntry(adjEntry adj, NodeBend* src) {
+	auto it = mapAdjEntryFirstNodeBend.find(adj);
+	NodeBend* nb = (*it).second;
+	if (nb->isNode) {
+		return nb;
+	}
+	else {
+		bool searchSuivant = (nb->precedent->globalNum == src->globalNum);
+		while ((nb->getX() == src->getX()) && (nb->getY() == src->getY())) {
+			if (searchSuivant) {
+				nb = nb->suivant;
+			}
+			else {
+				nb = nb->precedent;
+			}
+		}
+		return nb;
+	}
+}
+
 // Recupere les numeros des faces liées a l'adjentry
 std::pair<int, int> getAdjEntryFaces(adjEntry a) {
 	auto it = mapAdjEntryFaces.find(a);

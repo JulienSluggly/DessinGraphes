@@ -36,7 +36,7 @@ public:
 	// adjNodeBend pour les node uniquement
 	std::vector<NodeBend*> adjNodeBend;
 	// Constructeur pour les nodes
-	NodeBend(node n, GridLayout& GL, ConstCombinatorialEmbedding& CCE) {
+	NodeBend(node n, GridLayout& GL) {
 		isNode = true;
 		m_n = n;
 		a_x = &GL.x(n);
@@ -44,7 +44,7 @@ public:
 		numero = -1;
 	}
 	// Constructeur pour les bends
-	NodeBend(IPoint& p, edge e, int num, ConstCombinatorialEmbedding& CCE) {
+	NodeBend(IPoint& p, edge e, int num) {
 		isNode = false;
 		m_p = &p;
 		m_e = e;

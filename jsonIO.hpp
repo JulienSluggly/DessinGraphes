@@ -22,7 +22,7 @@ void readFromJson(string input, Graph& G, GridLayout& GL, int& gridWidth, int& g
     gridWidth = j["width"];
     gridHeight = j["height"];
     maxBends = j["bends"];
-    std::cout << "Max X: " << gridWidth << " Max Y: " << gridHeight << " Max Bends: " << maxBends << std::endl;
+    std::cout << "gridWidth: " << gridWidth << " gridHeight: " << gridHeight << " Max Bends: " << maxBends << std::endl;
 
     // BOOLEEN A CHANGER POUR AJOUTER LE MAXIMUM DE BENDS A CHAQUE EDGE
     bool setMaxBends = false;

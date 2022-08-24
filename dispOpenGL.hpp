@@ -46,6 +46,7 @@ bool change_embedding = false;
 int change_embedding_num = 0;
 bool save_all_embeddings = false;
 bool startGrilleDescente = false;
+bool autoRecuitAngle = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -253,13 +254,18 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_F5:
 			startGrilleDescente = true;
 			break;
+		case GLFW_KEY_F6:
+			autoRecuitAngle = !autoRecuitAngle;
+			break;
 		}
 }
 
 void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHeight, int maxX, int maxY, int maxBends, string nom_graphe) {
 	//debut ogdf
 	node n = G.firstNode();
-	CCE = ConstCombinatorialEmbedding{ G };
+	if (G.representsCombEmbedding() && isConnected(G) && isPlanar(G)) {
+		CCE = ConstCombinatorialEmbedding{ G };
+	}
 	double sommeLong = 0, sommeLong2 = 0, variance = 0;
 	prepCalcNVar(sommeLong, sommeLong2, variance);
 	double bestVariance = variance;
@@ -399,6 +405,9 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			checkTime(start, lastWritten, 10, variance, false);
 			checkTour(totalTurn, lastWrittenTurn, 20000, variance, false);
 		}
+		else if (autoRecuitAngle) {
+			selectedNodeBendNum = startSingleRecuitSimuleAngle(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+		}
 		else if (moveBestVariance) {
 			selectedNodeBendNum = startBestVariance(GL, CCE, numCourant, numLastMoved, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			numCourant = (numCourant + 1) % vectorNodeBends.size();
@@ -523,7 +532,8 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			startGrilleDescente = false;
 		}
 		else if (save_all_embeddings) {
-			saveAllEmbeddings(nom_graphe, G, GL, gridWidth, gridHeight, maxBends);
+			//saveAllEmbeddings(nom_graphe, G, GL, gridWidth, gridHeight, maxBends);
+			saveAllEmbeddings2(nom_graphe, G, GL, gridWidth, gridHeight, maxBends);
 			save_all_embeddings = false;
 		}
 		else if (show_segments) {

@@ -75,10 +75,9 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	//writeCsvULL("dataTurn.csv", nbTour, variance);
 	//writeCsvDouble("dataTime.csv", 0, variance);
 
-	int width, height;
 	double ratio = calcEdgeLengthRatio();
 	double bestRatio = ratio;
-	writeGraphInfo("allData.json", nomGraphe,gridWidth,gridHeight,maxBends,ratio,variance);
+	writeGraphInfo("allData.txt", nomGraphe,gridWidth,gridHeight,maxBends,ratio,variance);
 	// Roulette russe
 	if (i == 0) {
 		while (bestRatio > 1.00005) {
@@ -88,31 +87,32 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 			if (ratio < bestRatio) {
 				bestRatio = ratio;
 				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 				std::cout << "New Ratio: " << bestRatio << std::endl;
 			}
 			nbTour++;
 			if (nbTour % 10000 == 0) {
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 			}
 		}
 	}
 	// Recuit simulé
 	else if (i == 1) {
+		int nbTourCoeff = 0;
 		while (bestRatio > 1.00005) {
 			startRecuitSimule(coeff, GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
-			modifCoeffRecuit(coeff, coeffDesc, coeffMont, coeffMax, coeffMin, recuitMontant, nbTour, nbTourModifCoeff);
+			modifCoeffRecuit(coeff, coeffDesc, coeffMont, coeffMax, coeffMin, recuitMontant, nbTourCoeff, nbTourModifCoeff);
 			// Sauvegarde du nouveau meilleur graphe best ratio
 			ratio = calcEdgeLengthRatio();
 			if (ratio < bestRatio) {
 				bestRatio = ratio;
 				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 				std::cout << "New Ratio: " << bestRatio << std::endl;
 			}
 			nbTour++;
 			if (nbTour % 10000 == 0) {
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 			}
 		}
 	}
@@ -123,18 +123,18 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 				break;
 			}
 			startBestVariance(GL, CCE, numCourant, numLastMoved, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
-			numCourant = (numCourant + 1) % vectorNodeBends.size();
+			numCourant = (numCourant + 1) % (int)vectorNodeBends.size();
 			// Sauvegarde du nouveau meilleur graphe best ratio
 			ratio = calcEdgeLengthRatio();
 			if (ratio < bestRatio) {
 				bestRatio = ratio;
 				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 				std::cout << "New Ratio: " << bestRatio << std::endl;
 			}
 			nbTour++;
 			if (nbTour % 10000 == 0) {
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 			}
 		}
 	}
@@ -151,19 +151,19 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 					nbTourDepuisBestVar = 0;
 				}
 				startBestVariance(GL, CCE, numCourant, numLastMoved, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
-				numCourant = (numCourant + 1) % vectorNodeBends.size();
+				numCourant = (numCourant + 1) % (int)vectorNodeBends.size();
 			}
 			// Sauvegarde du nouveau meilleur graphe best ratio
 			ratio = calcEdgeLengthRatio();
 			if (ratio < bestRatio) {
 				bestRatio = ratio;
 				writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 				std::cout << "New Ratio: " << bestRatio << std::endl;
 			}
 			nbTour++;
 			if (nbTour % 10000 == 0) {
-				writeAllData("allData.json", nbTour, variance, ratio, start);
+				writeAllData("allData.txt", nbTour, variance, ratio, start);
 			}
 		}
 	}
