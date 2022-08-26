@@ -51,6 +51,7 @@ int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
 bool show_grid_size = true;
+int currentZoom = 0;
 std::set<face> setFace;
 std::set<edge> setEdge;
 bool showAllEdges = false;
@@ -257,6 +258,13 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_F6:
 			autoRecuitAngle = !autoRecuitAngle;
 			break;
+		case GLFW_KEY_KP_ADD:
+			//if (currentZoom >= 30)
+				currentZoom = currentZoom - 30;
+			break;
+		case GLFW_KEY_KP_SUBTRACT:
+			currentZoom = currentZoom + 30;
+			break;
 		}
 }
 
@@ -313,7 +321,7 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 	//fin ogdf
 	if (!glfwInit())
 		exit(EXIT_FAILURE);
-	GLFWwindow* window = glfwCreateWindow(640, 480, "Fenetre OpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Fenetre OpenGL", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();
@@ -337,10 +345,11 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 		glMatrixMode(GL_PROJECTION);
 		glLoadIdentity();
 		if (show_grid_size) {
-			glOrtho(-1, static_cast<float>(gridWidth) + 1, -1, static_cast<float>(gridHeight) + 1, 1.f, -1.f);
+			glOrtho(-1 - currentZoom, static_cast<float>(gridWidth) + 1 + currentZoom, -1 - currentZoom, static_cast<float>(gridHeight) + 1 + currentZoom, 1.f, -1.f);
 		}
 		else {
-			glOrtho(-1, static_cast<float>(maxX) + 1, -1, static_cast<float>(maxY) + 1, 1.f, -1.f);
+			//glOrtho(-1, static_cast<float>(maxX) + 1, -1, static_cast<float>(maxY) + 1, 1.f, -1.f);
+			glOrtho(-300, static_cast<float>(maxX) + 60, -300, static_cast<float>(maxY) + 60, 1.f, -1.f);
 		}
 		glMatrixMode(GL_MODELVIEW);
 		glLoadIdentity();
@@ -483,6 +492,7 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 		}
 		else if (save_current) {
 			writeToJson("currentSave.json", G, GL, gridWidth, gridHeight, maxBends);
+			std::cout << "Finished saving" << std::endl;
 		}
 		else if (make_copy) {
 			graphCopy.clear();

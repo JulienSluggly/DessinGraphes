@@ -13,6 +13,7 @@
 #include "EdgeMap.hpp"
 #include "NodeBend.hpp"
 #include <random>
+#include <math.h>
 
 using namespace ogdf;
 
@@ -1080,20 +1081,15 @@ std::pair<double, int> getSmallestAngleAroundNode(NodeBend* nb, GridLayout& GL) 
 			NodeBend* nb2;
 			while (it.valid()) {
 				nb1 = getFirstNonStackedNodeBendInAdjEntry((*it),nb);
-				p13 = sqrt(pow(nb->getX() - nb1->getX(), 2) + pow(nb->getY() - nb1->getY(), 2));
-				if (it == ordre.begin()) {
-					nb2 = getFirstNonStackedNodeBendInAdjEntry((*it2), nb);
+				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it)->cyclicPred(), nb);
+				angle = 360.0;
+				if (aGaucheInt(nb->getX(),nb->getY(),nb2->getX(), nb2->getY(), nb1->getX(), nb1->getY()) >= 0) {
+					p13 = sqrt(pow(nb->getX() - nb1->getX(), 2) + pow(nb->getY() - nb1->getY(), 2));
 					p12 = sqrt(pow(nb->getX() - nb2->getX(), 2) + pow(nb->getY() - nb2->getY(), 2));
 					p23 = sqrt(pow(nb2->getX() - nb1->getX(), 2) + pow(nb2->getY() - nb1->getY(), 2));
+					angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
 				}
-				else {
-					it--;
-					nb2 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-					p12 = sqrt(pow(nb->getX() - nb2->getX(), 2) + pow(nb->getY() - nb2->getY(), 2));
-					p23 = sqrt(pow(nb2->getX() - nb1->getX(), 2) + pow(nb2->getY() - nb1->getY(), 2));
-					it++;
-				}
-				angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
+				//std::cout << "Before Angle: " << angle << std::endl;
 				if (angle < smallestAngle) {
 					smallestAngle = angle;
 					numberAngle = 1;
@@ -1110,16 +1106,9 @@ std::pair<double, int> getSmallestAngleAroundNode(NodeBend* nb, GridLayout& GL) 
 		double p12 = sqrt(pow(nb->getX() - nb->precedent->getX(), 2) + pow(nb->getY() - nb->precedent->getY(), 2));
 		double p13 = sqrt(pow(nb->getX() - nb->suivant->getX(), 2) + pow(nb->getY() - nb->suivant->getY(), 2));
 		double p23 = sqrt(pow(nb->precedent->getX() - nb->suivant->getX(), 2) + pow(nb->precedent->getY() - nb->suivant->getY(), 2));
-		double angle = acos((pow(p12,2) + pow(p13,2) - pow(p23,2))/(2 * p12 * p13));
-		if (angle < 180.0) {
-			return std::make_pair(angle, 1);
-		}
-		else if (angle == 180.0) {
-			return std::make_pair(angle, 2);
-		}
-		else {
-			return std::make_pair(360.0 - angle, 1);
-		}
+		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
+		//std::cout << "Before Angle: " << angle << std::endl;
+		return std::make_pair(angle, 1);
 	}
 }
 
@@ -1130,44 +1119,28 @@ std::pair<double, int> getSmallestAngleAroundAdjNode(NodeBend* nb, GridLayout& G
 			return std::make_pair(360.0, 1);
 		}
 		else {
-			ListPure<adjEntry> adjEntries;
-			nb->getNode()->allAdjEntries(adjEntries);
-			ListPure<adjEntry> ordre = orderAroundNode(nb->getNode(), GL, adjEntries);
 			double p12, p13, p14, p23, p34, angle1, angle2;
-			auto it = ordre.begin();
-			auto it2 = ordre.begin();
-			auto it3 = ordre.rbegin();
-			NodeBend* nb2;
-			NodeBend* nb3;
-			NodeBend* nb4;
-			for (; ((*it) != adj)&&((*it) != adj->twin()); it++);
-			nb3 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-			if (it == ordre.begin()) {
-				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it3), nb);
-				it++;
-				nb4 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-				it--;
-			}
-			else {
-				it--;
-				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-				it++;
-				if ((*it) == (*it3)) {
-					nb4 = getFirstNonStackedNodeBendInAdjEntry((*it2), nb);
-				}
-				else {
-					it++;
-					nb4 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-					it--;
-				}
-			}
-			p12 = sqrt(pow(nb->getX() - nb2->getX(), 2) + pow(nb->getY() - nb2->getY(), 2));
+			adjEntry mainAdj = adj->twin();
+			adjEntry prec = mainAdj->cyclicPred();
+			adjEntry suiv = mainAdj->cyclicSucc();
+			NodeBend* nb3 = getFirstNonStackedNodeBendInAdjEntry(mainAdj, nb);
+			NodeBend* nb2 = getFirstNonStackedNodeBendInAdjEntry(prec, nb);
+			NodeBend* nb4 = getFirstNonStackedNodeBendInAdjEntry(suiv, nb);
+			angle1 = 360.0;
+			angle2 = 360.0;
 			p13 = sqrt(pow(nb->getX() - nb3->getX(), 2) + pow(nb->getY() - nb3->getY(), 2));
-			p14 = sqrt(pow(nb->getX() - nb4->getX(), 2) + pow(nb->getY() - nb4->getY(), 2));
-			p23 = sqrt(pow(nb2->getX() - nb3->getX(), 2) + pow(nb2->getY() - nb3->getY(), 2));
-			p34 = sqrt(pow(nb3->getX() - nb4->getX(), 2) + pow(nb3->getY() - nb4->getY(), 2));
-			angle1 = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
-			angle2 = acos((pow(p13, 2) + pow(p14, 2) - pow(p34, 2)) / (2 * p13 * p14));
+			if (aGaucheInt(nb->getX(), nb->getY(), nb2->getX(), nb2->getY(), nb3->getX(), nb3->getY()) >= 0) {
+				p12 = sqrt(pow(nb->getX() - nb2->getX(), 2) + pow(nb->getY() - nb2->getY(), 2));
+				p23 = sqrt(pow(nb2->getX() - nb3->getX(), 2) + pow(nb2->getY() - nb3->getY(), 2));
+				angle1 = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
+			}
+			if (aGaucheInt(nb->getX(), nb->getY(), nb3->getX(), nb3->getY(), nb4->getX(), nb4->getY()) >= 0) {
+				p14 = sqrt(pow(nb->getX() - nb4->getX(), 2) + pow(nb->getY() - nb4->getY(), 2));
+				p34 = sqrt(pow(nb3->getX() - nb4->getX(), 2) + pow(nb3->getY() - nb4->getY(), 2));
+				angle2 = acos((pow(p13, 2) + pow(p14, 2) - pow(p34, 2)) / (2 * p13 * p14)) * (180.0 / 3.14159265358979323846);
+			}
+			//std::cout << "Before Adj Angle1: " << angle1 << std::endl;
+			//std::cout << "Before Adj Angle2: " << angle2 << std::endl;
 			if (angle1 < angle2) {
 				return std::make_pair(angle1, 1);
 			}
@@ -1183,16 +1156,9 @@ std::pair<double, int> getSmallestAngleAroundAdjNode(NodeBend* nb, GridLayout& G
 		double p12 = sqrt(pow(nb->getX() - nb->precedent->getX(), 2) + pow(nb->getY() - nb->precedent->getY(), 2));
 		double p13 = sqrt(pow(nb->getX() - nb->suivant->getX(), 2) + pow(nb->getY() - nb->suivant->getY(), 2));
 		double p23 = sqrt(pow(nb->precedent->getX() - nb->suivant->getX(), 2) + pow(nb->precedent->getY() - nb->suivant->getY(), 2));
-		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
-		if (angle < 180.0) {
-			return std::make_pair(angle, 1);
-		}
-		else if (angle == 180.0) {
-			return std::make_pair(angle, 2);
-		}
-		else {
-			return std::make_pair(360.0 - angle, 1);
-		}
+		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
+		//std::cout << "Before Adj Angle: " << angle << std::endl;
+		return std::make_pair(angle, 1);
 	}
 }
 
@@ -1255,20 +1221,15 @@ std::pair<double, int> getSmallestAngleAroundNodeAfterMove(NodeBend* nb, GridLay
 			NodeBend* nb2;
 			while (it.valid()) {
 				nb1 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-				p13 = sqrt(pow(newX - nb1->getX(), 2) + pow(newY - nb1->getY(), 2));
-				if (it == ordre.begin()) {
-					nb2 = getFirstNonStackedNodeBendInAdjEntry((*it2), nb);
+				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it)->cyclicPred(), nb);
+				angle = 360.0;
+				if (aGaucheInt(nb->getX(), nb->getY(), nb2->getX(), nb2->getY(), nb1->getX(), nb1->getY()) >= 0) {
+					p13 = sqrt(pow(newX - nb1->getX(), 2) + pow(newY - nb1->getY(), 2));
 					p12 = sqrt(pow(newX - nb2->getX(), 2) + pow(newY - nb2->getY(), 2));
 					p23 = sqrt(pow(nb2->getX() - nb1->getX(), 2) + pow(nb2->getY() - nb1->getY(), 2));
+					angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
 				}
-				else {
-					it--;
-					nb2 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-					it++;
-					p12 = sqrt(pow(newX - nb2->getX(), 2) + pow(newY - nb2->getY(), 2));
-					p23 = sqrt(pow(nb2->getX() - nb1->getX(), 2) + pow(nb2->getY() - nb1->getY(), 2));
-				}
-				angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
+				//std::cout << "After Angle: " << angle << std::endl;
 				if (angle < smallestAngle) {
 					smallestAngle = angle;
 					numberAngle = 1;
@@ -1285,16 +1246,9 @@ std::pair<double, int> getSmallestAngleAroundNodeAfterMove(NodeBend* nb, GridLay
 		double p12 = sqrt(pow(newX - nb->precedent->getX(), 2) + pow(newY - nb->precedent->getY(), 2));
 		double p13 = sqrt(pow(newX - nb->suivant->getX(), 2) + pow(newY - nb->suivant->getY(), 2));
 		double p23 = sqrt(pow(nb->precedent->getX() - nb->suivant->getX(), 2) + pow(nb->precedent->getY() - nb->suivant->getY(), 2));
-		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
-		if (angle < 180.0) {
-			return std::make_pair(angle, 1);
-		}
-		else if (angle == 180.0) {
-			return std::make_pair(angle, 2);
-		}
-		else {
-			return std::make_pair(360.0 - angle, 1);
-		}
+		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
+		//std::cout << "After Angle: " << angle << std::endl;
+		return std::make_pair(angle, 1);
 	}
 }
 
@@ -1305,61 +1259,37 @@ std::pair<double, int> getSmallestAngleAroundAdjNodeAfterMove(NodeBend* nb, Grid
 			return std::make_pair(360.0, 1);
 		}
 		else {
-			ListPure<adjEntry> adjEntries;
-			nb->getNode()->allAdjEntries(adjEntries);
-			ListPure<adjEntry> ordre = orderAroundNode(nb->getNode(), GL, adjEntries);
 			double p12, p13, p14, p23, p34, angle1, angle2;
-			auto it = ordre.begin();
-			auto it2 = ordre.begin();
-			auto it3 = ordre.rbegin();
-			NodeBend* nb2, *nb3, *nb4;
+			adjEntry mainAdj = adj->twin();
+			adjEntry prec = mainAdj->cyclicPred();
+			adjEntry suiv = mainAdj->cyclicSucc();
+			NodeBend* nb3 = getFirstNonStackedNodeBendInAdjEntry(mainAdj, nb);
+			NodeBend* nb2 = getFirstNonStackedNodeBendInAdjEntry(prec, nb);
+			NodeBend* nb4 = getFirstNonStackedNodeBendInAdjEntry(suiv, nb);
 			int nb2X, nb2Y, nb3X, nb3Y, nb4X, nb4Y;
-			for (; ((*it) != adj) && ((*it) != adj->twin()); it++);
-			nb3 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-			if (it == ordre.begin()) {
-				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it3), nb);
-				it++;
-				nb4 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-				it--;
-			}
-			else {
-				it--;
-				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-				it++;
-				if ((*it) == (*it3)) {
-					nb4 = getFirstNonStackedNodeBendInAdjEntry((*it2), nb);
-				}
-				else {
-					it++;
-					nb4 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
-					it--;
-				}
-			}
 			nb2X = nb2->getX();
 			nb2Y = nb2->getY();
 			nb3X = nb3->getX();
 			nb3Y = nb3->getY();
 			nb4X = nb4->getX();
 			nb4Y = nb4->getY();
-			if (nb2->globalNum == moved->globalNum) {
-				nb2X = newX;
-				nb2Y = newY;
-			}
-			else if (nb3->globalNum == moved->globalNum) {
-				nb3X = newX;
-				nb3Y = newY;
-			}
-			else if (nb4->globalNum == moved->globalNum) {
-				nb4X = newX;
-				nb4Y = newY;
-			}
-			p12 = sqrt(pow(nb->getX() - nb2X, 2) + pow(nb->getY() - nb2Y, 2));
+			nb3X = newX;
+			nb3Y = newY;
+			angle1 = 360.0;
+			angle2 = 360.0;
 			p13 = sqrt(pow(nb->getX() - nb3X, 2) + pow(nb->getY() - nb3Y, 2));
-			p14 = sqrt(pow(nb->getX() - nb4X, 2) + pow(nb->getY() - nb4Y, 2));
-			p23 = sqrt(pow(nb2X - nb3X, 2) + pow(nb2Y - nb3Y, 2));
-			p34 = sqrt(pow(nb3X - nb4X, 2) + pow(nb3Y - nb4Y, 2));
-			angle1 = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
-			angle2 = acos((pow(p13, 2) + pow(p14, 2) - pow(p34, 2)) / (2 * p13 * p14));
+			if (aGaucheInt(nb->getX(), nb->getY(), nb2->getX(), nb2->getY(), nb3->getX(), nb3->getY()) >= 0) {
+				p12 = sqrt(pow(nb->getX() - nb2X, 2) + pow(nb->getY() - nb2Y, 2));
+				p23 = sqrt(pow(nb2X - nb3X, 2) + pow(nb2Y - nb3Y, 2));
+				angle1 = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
+			}
+			if (aGaucheInt(nb->getX(), nb->getY(), nb3->getX(), nb3->getY(), nb4->getX(), nb4->getY()) >= 0) {
+				p14 = sqrt(pow(nb->getX() - nb4X, 2) + pow(nb->getY() - nb4Y, 2));
+				p34 = sqrt(pow(nb3X - nb4X, 2) + pow(nb3Y - nb4Y, 2));
+				angle2 = acos((pow(p13, 2) + pow(p14, 2) - pow(p34, 2)) / (2 * p13 * p14)) * (180.0 / 3.14159265358979323846);
+			}
+			//std::cout << "After Adj Angle1: " << angle1 << std::endl;
+			//std::cout << "After Adj Angle2: " << angle2 << std::endl;
 			if (angle1 < angle2) {
 				return std::make_pair(angle1, 1);
 			}
@@ -1388,16 +1318,9 @@ std::pair<double, int> getSmallestAngleAroundAdjNodeAfterMove(NodeBend* nb, Grid
 		double p12 = sqrt(pow(nb->getX() - precX, 2) + pow(nb->getY() - precY, 2));
 		double p13 = sqrt(pow(nb->getX() - suivX, 2) + pow(nb->getY() - suivY, 2));
 		double p23 = sqrt(pow(precX - suivX, 2) + pow(precY - suivY, 2));
-		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13));
-		if (angle < 180.0) {
-			return std::make_pair(angle, 1);
-		}
-		else if (angle == 180.0) {
-			return std::make_pair(angle, 2);
-		}
-		else {
-			return std::make_pair(360.0 - angle, 1);
-		}
+		double angle = acos((pow(p12, 2) + pow(p13, 2) - pow(p23, 2)) / (2 * p12 * p13)) * (180.0 / 3.14159265358979323846);
+		//std::cout << "After Adj Angle: " << angle << std::endl;
+		return std::make_pair(angle, 1);
 	}
 }
 
@@ -2018,11 +1941,11 @@ bool singleRecuitSimuleNodeMoveAngle(NodeBend* n, int deplacement, GridLayout& G
 		int newX = n->getX() + vecteurDeplacements[deplacement].first;
 		int newY = n->getY() + vecteurDeplacements[deplacement].second;
 		std::pair<double, int> smallestAngleAfterMove = getSmallestAdjAngleAfterMove(n, GL, newX, newY);
-		if ((smallestAngle.first >= smallestAngleAfterMove.first)||((smallestAngle.first == smallestAngleAfterMove.first)&&(smallestAngle.second > smallestAngleAfterMove.second))) {
+		if ((smallestAngleAfterMove.first > smallestAngle.first)||((smallestAngle.first == smallestAngleAfterMove.first)&&(smallestAngle.second > smallestAngleAfterMove.second))) {
 			return true;
 		}
 	}
-	return isLegal;
+	return false;
 }
 
 // Demarre l'algorithme de recuit simulé sur le graphe

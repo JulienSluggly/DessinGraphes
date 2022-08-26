@@ -167,6 +167,17 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 			}
 		}
 	}
+	// Algo angle
+	else if (i == 11) {
+		while (nbTour < 500000) {
+			startSingleRecuitSimuleAngle(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
+			nbTour++;
+			if ((nbTour % 100000) == 0) {
+				std::cout << nbTour << std::endl;
+			}
+		}
+		writeToJson("bestResult.json", G, GL, gridWidth, gridHeight, maxBends);
+	}
 }
 
 #endif

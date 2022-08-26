@@ -7,6 +7,7 @@
 #include <ogdf/planarity/EmbedderMinDepthMaxFace.h>
 #include <ogdf/planarity/EmbedderMinDepthMaxFaceLayers.h>
 #include <ogdf/planarity/SimpleEmbedder.h>
+#include <ogdf/misclayout/BertaultLayout.h>
 
 #include <ogdf/basic/simple_graph_alg.h>
 #include <string>
@@ -31,8 +32,8 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string nom_fichier = "man21-1";
-	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/manuel/" + nom_fichier + ".json";
+	string nom_fichier = "auto21-7_MaxFace2";
+	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/embeddings/auto21-7/" + nom_fichier + ".json";
 	//string file = "D:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
 	bool useOpenGL = true;
@@ -91,15 +92,10 @@ int main() {
 	}
 	std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
 
-	
+	posVectorNodeBend.resize(maxX + 11);
 	// Remplissage des tableaux globaux
 	for (int i = 0; i <= maxX + 10; i++) {
-		std::vector<std::list<NodeBend*>> tmpVector;
-		for (int j = 0; j <= maxY + 10; j++) {
-			std::list<NodeBend*>tmpVector2;
-			tmpVector.push_back(tmpVector2);
-		}
-		posVectorNodeBend.push_back(tmpVector);
+		posVectorNodeBend[i].resize(maxY + 11);
 	}
 
 	std::cout << "Embedding..." << std::endl;
@@ -107,7 +103,7 @@ int main() {
 	std::cout << "Embeded: " << G.representsCombEmbedding() << std::endl;
 	std::cout << "Connexe: " << isConnected(G) << std::endl;
 	std::cout << "Planaire: " << isPlanar(G) << std::endl;
-
+	
 	// Ajout des node dans le vector
 	node n = G.firstNode();
 	while (n != nullptr) {
@@ -270,6 +266,28 @@ int main() {
 			}
 		}
 	}
+	// Bertault Layout
+	/*
+	GraphAttributes GA(G, GraphAttributes::nodeGraphics | GraphAttributes::edgeGraphics);
+	BertaultLayout BL;
+	node tmpN = G.firstNode();
+	while (tmpN != nullptr) {
+		GA.x(tmpN) = GL.x(tmpN);
+		GA.y(tmpN) = GL.y(tmpN);
+		tmpN = tmpN->succ();
+	}
+	BL.call(GA);
+	tmpN = G.firstNode();
+	while (tmpN != nullptr) {
+		std::cout << "X: " << GA.x(tmpN) << " Y: " << GA.y(tmpN) << std::endl;
+		GL.x(tmpN) = GA.x(tmpN);
+		GL.y(tmpN) = GA.y(tmpN);
+		tmpN = tmpN->succ();
+	}
+	*/
+
+	gridWidth = maxX;
+	gridHeight = maxY;
 
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));
@@ -277,7 +295,7 @@ int main() {
 		dispOpenGL(G, GL, gridWidth, gridHeight, maxX, maxY, maxBends, nom_fichier);
 	}
 	else {
-		runAlgo(1, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends, file);
+		runAlgo(11, G, GL, gridWidth, gridHeight, maxX, maxY, maxBends, file);
 	}
 	return 0;
 }
