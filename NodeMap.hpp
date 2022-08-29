@@ -9,6 +9,8 @@ extern std::vector<Segment*> vectorSegments;
 extern std::vector<std::vector<Segment*>> vectorFaceSegment;
 extern std::unordered_map<adjEntry, std::pair<int, int>> mapAdjEntryFaces;
 extern std::unordered_map<adjEntry, NodeBend*> mapAdjEntryFirstNodeBend;
+extern std::unordered_map<int, int> mapIndexId;
+extern std::unordered_map<int, node> mapIdNode;
 
 // Vecteur qui indique la liste des NodeBend a ces coordonnées.
 std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
@@ -22,6 +24,10 @@ std::vector<std::vector<Segment*>> vectorFaceSegment;
 std::unordered_map<adjEntry, std::pair<int, int>> mapAdjEntryFaces;
 // Map de l'adjEntry au premier bend voisin, utilisé pour les node
 std::unordered_map<adjEntry, NodeBend*> mapAdjEntryFirstNodeBend;
+// Map de l'index d'un node a son ID original
+std::unordered_map<int, int> mapIndexId;
+// Map de l'id original d'un node a la node
+std::unordered_map<int, node> mapIdNode;
 
 // Recupere le NodeBend associé à un node
 NodeBend* getNodeBendFromNode(node n) {

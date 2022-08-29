@@ -321,7 +321,7 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 	//fin ogdf
 	if (!glfwInit())
 		exit(EXIT_FAILURE);
-	GLFWwindow* window = glfwCreateWindow(1920, 1080, "Fenetre OpenGL", NULL, NULL);
+	GLFWwindow* window = glfwCreateWindow(1820, 980, "Fenetre OpenGL", NULL, NULL);
 	if (!window)
 	{
 		glfwTerminate();

@@ -8,6 +8,9 @@
 #include <ogdf/planarity/EmbedderMinDepthMaxFaceLayers.h>
 #include <ogdf/planarity/SimpleEmbedder.h>
 #include <ogdf/misclayout/BertaultLayout.h>
+#include <ogdf/augmentation/AugmentationModule.h>
+#include <ogdf/augmentation/PlanarAugmentation.h>
+#include <ogdf/basic/Graph_d.h>
 
 #include <ogdf/basic/simple_graph_alg.h>
 #include <string>
@@ -32,15 +35,20 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string nom_fichier = "auto21-7_MaxFace2";
-	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/embeddings/auto21-7/" + nom_fichier + ".json";
+	string nom_fichier = "auto21-10_MaxFace2";
+	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/embeddings/auto21-10/" + nom_fichier + ".json";
 	//string file = "D:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
 	bool useOpenGL = true;
 
 	std::cout << "File: " << file << std::endl;
 	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
-	writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
+	string combineFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC";
+	//combinesFromJson(combineFile,61, G, GL, gridWidth, gridHeight, maxBends);
+	//writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
+	//saveInOrder("auto21-10_MaxFace2SeparatedOrdered.json", G, GL, gridWidth, gridHeight, maxBends);
+	//saveAllConnectedComponents(nom_fichier,G,GL,gridWidth,gridHeight,maxBends);
+	//saveAllConnectedComponentsv2(nom_fichier,G,GL,gridWidth,gridHeight,maxBends);
 
 	int maxX = gridWidth, maxY = gridHeight, minX = 0, minY = 0;
 
@@ -91,7 +99,29 @@ int main() {
 		n1 = n1->succ();
 	}
 	std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
+	/*
+	PlanarAugmentation AM;
+	List<edge> addedEdges;
+	AM.call(G, addedEdges);
+	std::cout << "Augmented: " << addedEdges.size() << " edges added!" << std::endl;
 
+	for (auto it = addedEdges.begin(); it.valid(); it++) {
+		double length = calcEdgeLength((*it), GL);
+		mapEdgeLength.insert(std::pair<edge, double>((*it), length));
+		std::map<double, std::set<edge>>::iterator it2 = mapLengthEdgeSet.begin();
+		it2 = mapLengthEdgeSet.find(length);
+		// La valeur est déja présente, on ajoute dans le set
+		if (it2 != mapLengthEdgeSet.end()) {
+			it2->second.insert((*it));
+		}
+		// La valeur n'est pas présente, on créer un nouveau set.
+		else {
+			std::set<edge> tmpSet;
+			tmpSet.insert((*it));
+			mapLengthEdgeSet.insert(std::pair<double, std::set<edge>>(length, tmpSet));
+		}
+	}
+	
 	posVectorNodeBend.resize(maxX + 11);
 	// Remplissage des tableaux globaux
 	for (int i = 0; i <= maxX + 10; i++) {
@@ -266,6 +296,7 @@ int main() {
 			}
 		}
 	}
+	
 	// Bertault Layout
 	/*
 	GraphAttributes GA(G, GraphAttributes::nodeGraphics | GraphAttributes::edgeGraphics);
@@ -284,10 +315,13 @@ int main() {
 		GL.y(tmpN) = GA.y(tmpN);
 		tmpN = tmpN->succ();
 	}
+	writeToJson("auto21-10BertInt.json", G, GL, gridWidth, gridHeight, maxBends);
+	writeToJsonDouble("auto21-10BertDouble.json", G, GA, gridWidth, gridHeight, maxBends);
 	*/
-
 	gridWidth = maxX;
 	gridHeight = maxY;
+	minX = 0;
+	minY = 0;
 
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));

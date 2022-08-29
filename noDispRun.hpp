@@ -31,6 +31,9 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	else if (i == 10) {
 		std::cout << "Starting Mixte(Recuit Simule + Best Variance)..." << std::endl;
 	}
+	else if (i == 11) {
+		std::cout << "Starting Algorithme Angle..." << std::endl;
+	}
 
 	//debut ogdf
 	node n = G.firstNode();
@@ -169,7 +172,7 @@ void runAlgo(int i, Graph& G, GridLayout& GL, const int gridWidth, const int gri
 	}
 	// Algo angle
 	else if (i == 11) {
-		while (nbTour < 500000) {
+		while (nbTour < 10000000) {
 			startSingleRecuitSimuleAngle(GL, CCE, sommeLong, sommeLong2, variance, gridHeight, gridWidth);
 			nbTour++;
 			if ((nbTour % 100000) == 0) {
