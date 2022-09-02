@@ -11,6 +11,7 @@ extern std::unordered_map<adjEntry, std::pair<int, int>> mapAdjEntryFaces;
 extern std::unordered_map<adjEntry, NodeBend*> mapAdjEntryFirstNodeBend;
 extern std::unordered_map<int, int> mapIndexId;
 extern std::unordered_map<int, node> mapIdNode;
+extern std::vector<std::vector<int>> vectorSegmentBool;
 
 // Vecteur qui indique la liste des NodeBend a ces coordonnées.
 std::vector<std::vector<std::list<NodeBend*>>> posVectorNodeBend;
@@ -28,6 +29,8 @@ std::unordered_map<adjEntry, NodeBend*> mapAdjEntryFirstNodeBend;
 std::unordered_map<int, int> mapIndexId;
 // Map de l'id original d'un node a la node
 std::unordered_map<int, node> mapIdNode;
+// Vecteur de vecteur d'entier indiquant la position d'un segment entre deux nodebend de globalnum différents dans le vecteur global vectorSegments, -1 si ce segment n'existe pas.0
+std::vector<std::vector<int>> vectorSegmentBool;
 
 // Recupere le NodeBend associé à un node
 NodeBend* getNodeBendFromNode(node n) {
@@ -56,7 +59,17 @@ Segment* getSegmentFromNodeBends(NodeBend* nb1, NodeBend* nb2) {
 			return vectorSegments[i];
 		}
 	}
-	//std::cout << "Error n1: " << nb1->globalNum << " nb2: " << nb2->globalNum << std::endl;
+	std::cout << "OLD VESRION Error n1: " << nb1->globalNum << " nb2: " << nb2->globalNum << std::endl;
+	return nullptr;
+}
+
+// Renvoie le segment associé a deux nodebend s'il existe
+Segment* getSegmentFromNodeBendsV2(NodeBend* nb1, NodeBend* nb2) {
+	int numero = vectorSegmentBool[nb1->globalNum][nb2->globalNum];
+	if (numero != -1) {
+		return vectorSegments[numero];
+	}
+	std::cout << "Error n1: " << nb1->globalNum << " nb2: " << nb2->globalNum << std::endl;
 	return nullptr;
 }
 
@@ -87,6 +100,33 @@ std::pair<NodeBend*, NodeBend*> getFirstSegmentInAdjEntry(adjEntry adj, NodeBend
 	}
 }
 
+// Utilisé par les node pour recuperer le premier segment non nul de l'adjEntry
+Segment* getFirstSegmentInAdjEntryV2(adjEntry adj, NodeBend* src) {
+	auto it = mapAdjEntryFirstNodeBend.find(adj);
+	NodeBend* nb1 = (*it).second;
+	if ((nb1->getX() != src->getX()) || (nb1->getY() != src->getY())) {
+		return getSegmentFromNodeBendsV2(src, nb1);
+	}
+	else {
+		NodeBend* nb2;
+		if (nb1->suivant->globalNum == src->globalNum) {
+			nb2 = nb1->precedent;
+			while ((nb1->getX() == nb2->getX()) && (nb1->getY() == nb2->getY())) {
+				nb1 = nb2;
+				nb2 = nb2->precedent;
+			}
+		}
+		else {
+			nb2 = nb1->suivant;
+			while ((nb1->getX() == nb2->getX()) && (nb1->getY() == nb2->getY())) {
+				nb1 = nb2;
+				nb2 = nb2->suivant;
+			}
+		}
+		return getSegmentFromNodeBendsV2(nb1, nb2);
+	}
+}
+
 // Utilisé par les node pour retourner le premier nodebend non stacké sur le node de départ dans une adjentry
 NodeBend* getFirstNonStackedNodeBendInAdjEntry(adjEntry adj, NodeBend* src) {
 	auto it = mapAdjEntryFirstNodeBend.find(adj);
@@ -112,6 +152,11 @@ NodeBend* getFirstNonStackedNodeBendInAdjEntry(adjEntry adj, NodeBend* src) {
 std::pair<int, int> getAdjEntryFaces(adjEntry a) {
 	auto it = mapAdjEntryFaces.find(a);
 	return (it->second);
+}
+
+// Indique si le NodeBend n'est pas seul sur sa grille
+bool isStackedInGrid(NodeBend* nb) {
+	return (posVectorNodeBend[nb->getX()][nb->getY()].size() > 1);
 }
 
 #endif

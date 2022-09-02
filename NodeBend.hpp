@@ -115,17 +115,23 @@ public:
 	}
 	// Indique si le nodebend peut se stack avec le nodebend nb
 	bool isStackableWith(NodeBend* nb) {
+		// Sois meme
 		if (this->globalNum == nb->globalNum) {
 			return true;
 		}
+		// Node
 		if (this->isNode) {
+			// Node avec Node
 			if (nb->isNode) {
 				return false;
 			}
+			// Node avec Bend
 			else {
+				// Node est suivant ou precedent direct du Bend
 				if ((nb->precedent->globalNum == this->globalNum) || (nb->suivant->globalNum == this->globalNum)) {
 					return true;
 				}
+				// Bend est stacké sur un des premiers d'une adjentry
 				else {
 					for (int i = 0; i < this->adjNodeBend.size(); i++) {
 						if ((*nb->a_x == *this->adjNodeBend[i]->a_x) && (*nb->a_y == *this->adjNodeBend[i]->a_y)) {
@@ -136,51 +142,35 @@ public:
 				}
 			}
 		}
+		// Bend
 		else {
+			// NB est un precedent ou suivant direct
 			if ((this->precedent->globalNum == nb->globalNum) || (this->suivant->globalNum == nb->globalNum)) {
 				return true;
 			}
-			else {
-				NodeBend* prec = this->precedent;
-				int precX = *this->precedent->a_x;
-				int precY = *this->precedent->a_y;
-				// Recherche si nb est un precedent
-				while (!prec->isNode) {
-					prec = prec->precedent;
-					if ((*prec->a_x != precX) || (*prec->a_y != precY)) {
-						break;
-					}
-					if (prec->globalNum == nb->globalNum) {
-						return true;
-					}
-				}
-				NodeBend* suiv = this->suivant;
-				int suivX = *this->suivant->a_x;
-				int suivY = *this->suivant->a_y;
-				// Recherche si nb est un suivant
-				while (!suiv->isNode) {
-					suiv = suiv->suivant;
-					if ((*suiv->a_x != suivX) || (*suiv->a_y != suivY)) {
-						break;
-					}
-					if (suiv->globalNum == nb->globalNum) {
-						return true;
-					}
-				}
-				// On regarde si ils sont stackés sur un noeud en commun
-				bool diffBendStacked = false;
-				if (!nb->isNode) {
-					if ((this->parent1->globalNum == nb->parent1->globalNum) || (this->parent1->globalNum == nb->parent2->globalNum)) {
-						diffBendStacked = diffBendStacked || ((*this->parent1->a_x == *this->a_x) && (*this->parent1->a_y == *this->a_y) && (*this->parent1->a_x == *nb->a_x) && (*this->parent1->a_y == *nb->a_y));
-					}
-					else if ((this->parent2->globalNum == nb->parent1->globalNum) || (this->parent2->globalNum == nb->parent2->globalNum)) {
-						diffBendStacked = diffBendStacked || ((*this->parent2->a_x == *this->a_x) && (*this->parent2->a_y == *this->a_y) && (*this->parent2->a_x == *nb->a_x) && (*this->parent2->a_y == *nb->a_y));
-					}
-				}
-				return diffBendStacked;
+			// Pas precedent direct, on regarde si le precedent ou suivant du Bend est stacké avec NB
+			if (((this->precedent->getX() == nb->getX()) && (this->precedent->getY() == nb->getY())) || ((this->suivant->getX() == nb->getX()) && (this->suivant->getY() == nb->getY()))) {
+				return true;
 			}
+			return false;
 		}
 	}
+
+	// Indique si le nodebend est stacké avec ce nodebend et si ce stacking est autorisé
+	bool isAutorisedStacked(NodeBend* nb) {
+		if ((this->getX() == nb->getX()) && (this->getY() == nb->getY())) {
+			if (this->isStackableWith(nb)) {
+				return true;
+			}
+		}
+		return false;
+	}
+
+	// Indique si le bend est stacké sur l'un de ses parents
+	bool isStackedOnParent() {
+		return (((this->getX() == this->parent1->getX()) && (this->getY() == this->parent1->getY())) || ((this->getX() == this->parent2->getX()) && (this->getY() == this->parent2->getY())));
+	}
+
 private:
 	node m_n = nullptr;
 	edge m_e = nullptr;

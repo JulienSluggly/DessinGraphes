@@ -35,24 +35,33 @@ int main() {
 	int gridWidth, gridHeight, maxBends;
 
 	// ----- LECTURE D'UN FICHIER JSON DANS UN Graph -----
-	string nom_fichier = "auto21-10_MaxFace2";
-	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/embeddings/auto21-10/" + nom_fichier + ".json";
+	string nom_fichier = "auto21-8_MaxFace2";
+	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/embeddings/auto21-8/" + nom_fichier + ".json";
 	//string file = "D:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
-	bool useOpenGL = true;
+	bool useOpenGL = false;
+	bool useBertault = false;
+	bool planarize = false;
+	bool displayNodeBends = true;
+	bool useNodeBends = true;
+	bool useAugmenter = false;
+	bool upscaleGrid = true;
 
 	std::cout << "File: " << file << std::endl;
-	readFromJson(file, G, GL, gridWidth, gridHeight, maxBends);
-	string combineFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC";
+	string tmpFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC0Ordered.json";
+	//string tmpFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/bestResult.json";
+	//readFromJsonDoubleUpscale(tmpFile, G, GL, gridWidth, gridHeight, maxBends);
+	//readFromJson(tmpFile, G, GL, gridWidth, gridHeight, maxBends);
+	readFromJsonMove(tmpFile, 300, 300, G, GL, gridWidth, gridHeight, maxBends);
+	//string combineFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC";
 	//combinesFromJson(combineFile,61, G, GL, gridWidth, gridHeight, maxBends);
 	//writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
-	//saveInOrder("auto21-10_MaxFace2SeparatedOrdered.json", G, GL, gridWidth, gridHeight, maxBends);
+	//saveInOrder("auto21-10_MaxFace2_CC0Ordered.json", G, GL, gridWidth, gridHeight, maxBends);
 	//saveAllConnectedComponents(nom_fichier,G,GL,gridWidth,gridHeight,maxBends);
 	//saveAllConnectedComponentsv2(nom_fichier,G,GL,gridWidth,gridHeight,maxBends);
 
 	int maxX = gridWidth, maxY = gridHeight, minX = 0, minY = 0;
 
-	bool planarize = false;
 	if (planarize) {
 		int specificEmbedding = 1;
 		std::cout << "Planarizing..." << std::endl;
@@ -99,33 +108,30 @@ int main() {
 		n1 = n1->succ();
 	}
 	std::cout << "minX: " << minX << " maxX: " << maxX << " minY: " << minY << " maxY: " << maxY << std::endl;
-	/*
-	PlanarAugmentation AM;
-	List<edge> addedEdges;
-	AM.call(G, addedEdges);
-	std::cout << "Augmented: " << addedEdges.size() << " edges added!" << std::endl;
 
-	for (auto it = addedEdges.begin(); it.valid(); it++) {
-		double length = calcEdgeLength((*it), GL);
-		mapEdgeLength.insert(std::pair<edge, double>((*it), length));
-		std::map<double, std::set<edge>>::iterator it2 = mapLengthEdgeSet.begin();
-		it2 = mapLengthEdgeSet.find(length);
-		// La valeur est déja présente, on ajoute dans le set
-		if (it2 != mapLengthEdgeSet.end()) {
-			it2->second.insert((*it));
+	if (useAugmenter) {
+		std::cout << "Augmenting..." << std::endl;
+		PlanarAugmentation AM;
+		List<edge> addedEdges;
+		AM.call(G, addedEdges);
+		std::cout << "Augmented: " << addedEdges.size() << " edges added!" << std::endl;
+
+		for (auto it = addedEdges.begin(); it.valid(); it++) {
+			double length = calcEdgeLength((*it), GL);
+			mapEdgeLength.insert(std::pair<edge, double>((*it), length));
+			std::map<double, std::set<edge>>::iterator it2 = mapLengthEdgeSet.begin();
+			it2 = mapLengthEdgeSet.find(length);
+			// La valeur est déja présente, on ajoute dans le set
+			if (it2 != mapLengthEdgeSet.end()) {
+				it2->second.insert((*it));
+			}
+			// La valeur n'est pas présente, on créer un nouveau set.
+			else {
+				std::set<edge> tmpSet;
+				tmpSet.insert((*it));
+				mapLengthEdgeSet.insert(std::pair<double, std::set<edge>>(length, tmpSet));
+			}
 		}
-		// La valeur n'est pas présente, on créer un nouveau set.
-		else {
-			std::set<edge> tmpSet;
-			tmpSet.insert((*it));
-			mapLengthEdgeSet.insert(std::pair<double, std::set<edge>>(length, tmpSet));
-		}
-	}
-	
-	posVectorNodeBend.resize(maxX + 11);
-	// Remplissage des tableaux globaux
-	for (int i = 0; i <= maxX + 10; i++) {
-		posVectorNodeBend[i].resize(maxY + 11);
 	}
 
 	std::cout << "Embedding..." << std::endl;
@@ -133,117 +139,124 @@ int main() {
 	std::cout << "Embeded: " << G.representsCombEmbedding() << std::endl;
 	std::cout << "Connexe: " << isConnected(G) << std::endl;
 	std::cout << "Planaire: " << isPlanar(G) << std::endl;
-	
-	// Ajout des node dans le vector
-	node n = G.firstNode();
-	while (n != nullptr) {
-		NodeBend* tmpNodeBend = new NodeBend(n, GL);
-		if ((tmpNodeBend->getX() <= gridWidth) && (tmpNodeBend->getY() <= gridHeight)) {
-			tmpNodeBend->isInGrille = true;
+
+	if (useNodeBends) {
+		std::cout << "Populating global vectors..." << std::endl;
+		posVectorNodeBend.resize(maxX + 101);
+		// Remplissage des tableaux globaux
+		for (int i = 0; i <= maxX + 100; i++) {
+			posVectorNodeBend[i].resize(maxY + 101);
 		}
-		else {
-			tmpNodeBend->isInGrille = false;
-		}
-		vectorNodeBends.push_back(tmpNodeBend);
-		n = n->succ();
 	}
 
-	if (G.representsCombEmbedding() && isConnected(G) && isPlanar(G)) {
-		ConstCombinatorialEmbedding CCE{ G };
-		vectorFaceSegment.reserve(CCE.maxFaceIndex() + 1);
-		for (int i = 0; i < vectorFaceSegment.capacity(); i++) {
-			std::vector<Segment*> tmpVecSegment;
-			vectorFaceSegment.push_back(tmpVecSegment);
+	if (useNodeBends || displayNodeBends) {
+		std::cout << "Instanciating NodeBends from nodes..." << std::endl;
+		// Ajout des node dans le vector
+		node n = G.firstNode();
+		while (n != nullptr) {
+			NodeBend* tmpNodeBend = new NodeBend(n, GL);
+			if ((tmpNodeBend->getX() <= gridWidth) && (tmpNodeBend->getY() <= gridHeight)) {
+				tmpNodeBend->isInGrille = true;
+			}
+			else {
+				tmpNodeBend->isInGrille = false;
+			}
+			vectorNodeBends.push_back(tmpNodeBend);
+			n = n->succ();
 		}
+	}
 
-		// Ajout des bend dans le vector
-		edge e = G.firstEdge();
-		while (e != nullptr) {
-			IPolyline& bends = GL.bends(e);
-			int k = 0;
-			NodeBend* p1 = getNodeBendFromNode(e->source());
-			NodeBend* p2 = getNodeBendFromNode(e->target());
-			NodeBend* precedent = p1;
-			adjEntry adj1 = e->adjSource();
-			adjEntry adj2 = e->adjTarget();
-			std::pair<int, int> tmpPair(CCE.leftFace(adj1)->index(), CCE.rightFace(adj1)->index());
-			mapAdjEntryFaces.insert(std::pair<adjEntry, std::pair<int, int>>(adj1, tmpPair));
-			mapAdjEntryFaces.insert(std::pair<adjEntry, std::pair<int, int>>(adj2, tmpPair));
-			if (bends.size() != 0) {
-				for (ListIterator<IPoint> i = bends.begin(); i.valid(); k++) {
-					p1 = getNodeBendFromNode(e->source());
-					p2 = getNodeBendFromNode(e->target());
-					NodeBend* tmpNodeBend = new NodeBend((*i), e, k);
-					tmpNodeBend->parent1 = p1;
-					tmpNodeBend->parent2 = p2;
-					if (k == 0) {
-						mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj1, tmpNodeBend));
+	if (useNodeBends) {
+		if (G.representsCombEmbedding() && isConnected(G) && isPlanar(G)) {
+			ConstCombinatorialEmbedding CCE{ G };
+			vectorFaceSegment.reserve(CCE.maxFaceIndex() + 1);
+			for (int i = 0; i < vectorFaceSegment.capacity(); i++) {
+				std::vector<Segment*> tmpVecSegment;
+				vectorFaceSegment.push_back(tmpVecSegment);
+			}
+			std::cout << "Instanciating NodeBends from bends..." << std::endl;
+			// Ajout des bend dans le vector
+			edge e = G.firstEdge();
+			while (e != nullptr) {
+				IPolyline& bends = GL.bends(e);
+				int k = 0;
+				NodeBend* p1 = getNodeBendFromNode(e->source());
+				NodeBend* p2 = getNodeBendFromNode(e->target());
+				NodeBend* precedent = p1;
+				adjEntry adj1 = e->adjSource();
+				adjEntry adj2 = e->adjTarget();
+				std::pair<int, int> tmpPair(CCE.leftFace(adj1)->index(), CCE.rightFace(adj1)->index());
+				mapAdjEntryFaces.insert(std::pair<adjEntry, std::pair<int, int>>(adj1, tmpPair));
+				mapAdjEntryFaces.insert(std::pair<adjEntry, std::pair<int, int>>(adj2, tmpPair));
+				if (bends.size() != 0) {
+					for (ListIterator<IPoint> i = bends.begin(); i.valid(); k++) {
+						p1 = getNodeBendFromNode(e->source());
+						p2 = getNodeBendFromNode(e->target());
+						NodeBend* tmpNodeBend = new NodeBend((*i), e, k);
+						tmpNodeBend->parent1 = p1;
+						tmpNodeBend->parent2 = p2;
+						if (k == 0) {
+							mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj1, tmpNodeBend));
+						}
+						// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
+						if ((tmpNodeBend->getX() == p1->getX()) && (tmpNodeBend->getY() == p1->getY())) {
+							tmpNodeBend->isStacked = true;
+							p1->isStacked = true;
+						}
+						else if ((tmpNodeBend->getX() == p2->getX()) && (tmpNodeBend->getY() == p2->getY())) {
+							tmpNodeBend->isStacked = true;
+							p2->isStacked = true;
+						}
+						tmpNodeBend->precedent = precedent;
+						if (!precedent->isNode) {
+							precedent->suivant = tmpNodeBend;
+						}
+						i++;
+						if (!i.valid()) {
+							tmpNodeBend->suivant = p2;
+							mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj2, tmpNodeBend));
+						}
+						precedent = tmpNodeBend;
+						vectorNodeBends.push_back(tmpNodeBend);
 					}
-					// Marche uniquement pour les bends supplémentaires qui s'initialisent sur le node parent
-					if ((tmpNodeBend->getX() == p1->getX()) && (tmpNodeBend->getY() == p1->getY())) {
-						tmpNodeBend->isStacked = true;
-						p1->isStacked = true;
-					}
-					else if ((tmpNodeBend->getX() == p2->getX()) && (tmpNodeBend->getY() == p2->getY())) {
-						tmpNodeBend->isStacked = true;
-						p2->isStacked = true;
-					}
-					tmpNodeBend->precedent = precedent;
-					if (!precedent->isNode) {
-						precedent->suivant = tmpNodeBend;
-					}
-					i++;
-					if (!i.valid()) {
-						tmpNodeBend->suivant = p2;
-						mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj2, tmpNodeBend));
-					}
-					precedent = tmpNodeBend;
-					vectorNodeBends.push_back(tmpNodeBend);
 				}
+				else {
+					mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj1, p2));
+					mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj2, p1));
+				}
+				e = e->succ();
 			}
-			else {
-				mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj1, p2));
-				mapAdjEntryFirstNodeBend.insert(std::pair<adjEntry, NodeBend*>(adj2, p1));
+			std::cout << "Assigning Global num and position in vectors..." << std::endl;
+			// Assign du num global et du tableau de position
+			for (int i = 0; i < vectorNodeBends.size(); i++) {
+				std::vector<int> tmpVector;
+				vectorNodeBends[i]->assignGlobalNum(i);
+				if (vectorNodeBends[i]->isNode) {
+					posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].push_front(vectorNodeBends[i]);
+				}
+				else {
+					posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].push_back(vectorNodeBends[i]);
+				}
+				for (int k = 0; k < vectorNodeBends.size(); k++) {
+					tmpVector.push_back(-1);
+				}
+				vectorSegmentBool.push_back(tmpVector);
 			}
-			e = e->succ();
-		}
-		// Assign du num global et du tableau de position
-		for (int i = 0; i < vectorNodeBends.size(); i++) {
-			vectorNodeBends[i]->assignGlobalNum(i);
-			if (vectorNodeBends[i]->isNode) {
-				posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].push_front(vectorNodeBends[i]);
-			}
-			else {
-				posVectorNodeBend[*vectorNodeBends[i]->a_x][*vectorNodeBends[i]->a_y].push_back(vectorNodeBends[i]);
-			}
-		}
 
-		// On initialise le tableau global de segment et la map de face a segment
-		face f = CCE.firstFace();
-		std::vector<edge> vectorEdges;
-		vectorEdges.reserve(f->size());
-		int numSegment = 0;
-		while (f != nullptr) {
-			int numeroFace = f->index();
-			// On recupere la liste des edges
-			adjEntry firstAdj = f->firstAdj();
-			adjEntry nextAdj = firstAdj;
-			if (firstAdj != nullptr) {
-				do {
-					vectorEdges.push_back(nextAdj->theEdge());
-					nextAdj = f->nextFaceEdge(nextAdj);
-				} while ((nextAdj != firstAdj) && (nextAdj != nullptr));
-			}
-			// On parcour tout les edges et on les transforme en segments ou on regarde s'il existe deja.
-			int* srcX, * srcY, * trgX, * trgY;
-			NodeBend* source = nullptr;
-			NodeBend* target = nullptr;
-			Segment* s = nullptr;
-			for (int i = 0; i < vectorEdges.size(); i++) {
-				srcX = &GL.x(vectorEdges[i]->source());
-				srcY = &GL.y(vectorEdges[i]->source());
-				source = getNodeBendFromNode(vectorEdges[i]->source());
-				IPolyline& p = GL.bends(vectorEdges[i]);
+
+			std::cout << "Initializing Segment global vector and Face mapping..." << std::endl;
+			// On initialise le tableau global de segment et la map de face a segment
+			edge edg = G.firstEdge();
+			int numSegment = 0;
+			while (edg != nullptr) {
+				// On parcour tout les edges et on les transforme en segments ou on regarde s'il existe deja.
+				int* srcX, * srcY, * trgX, * trgY;
+				NodeBend* source = getNodeBendFromNode(edg->source());
+				NodeBend* target = nullptr;
+				Segment* s = nullptr;
+				srcX = &GL.x(edg->source());
+				srcY = &GL.y(edg->source());
+				IPolyline& p = GL.bends(edg);
 				// Si l'edge contient des bends
 				if (p.size() > 0) {
 					auto it2 = p.begin();
@@ -251,77 +264,84 @@ int main() {
 						trgX = &(*it2).m_x;
 						trgY = &(*it2).m_y;
 						target = getNodeBendFromBend(&(*it2));
-						s = getSegmentFromNodeBends(source, target);
-						// On créé le segment s'il n'existe pas
-						if (s == nullptr) {
-							s = new Segment(srcX, srcY, trgX, trgY);
-							s->setSource(source);
-							s->setTarget(target);
-							s->assignGlobalNum(numSegment);
-							numSegment++;
-							vectorSegments.push_back(s);
-
-						}
-						vectorFaceSegment[numeroFace].push_back(s);
+						s = new Segment(srcX, srcY, trgX, trgY);
+						s->setSource(source);
+						s->setTarget(target);
+						s->assignGlobalNum(numSegment);
+						vectorSegmentBool[source->globalNum][target->globalNum] = numSegment;
+						vectorSegmentBool[target->globalNum][source->globalNum] = numSegment;
+						numSegment++;
+						vectorSegments.push_back(s);
+						vectorFaceSegment[CCE.leftFace(edg->adjSource())->index()].push_back(s);
+						vectorFaceSegment[CCE.rightFace(edg->adjSource())->index()].push_back(s);
 						srcX = trgX;
 						srcY = trgY;
 						it2++;
 						source = target;
 					}
 				}
-				target = getNodeBendFromNode(vectorEdges[i]->target());
-				trgX = &GL.x(vectorEdges[i]->target());
-				trgY = &GL.y(vectorEdges[i]->target());
-				s = getSegmentFromNodeBends(source, target);
-				if (s == nullptr) {
-					s = new Segment(srcX, srcY, trgX, trgY);
-					s->setSource(source);
-					s->setTarget(target);
-					s->assignGlobalNum(numSegment);
-					numSegment++;
-					vectorSegments.push_back(s);
-				}
-				vectorFaceSegment[numeroFace].push_back(s);
+				target = getNodeBendFromNode(edg->target());
+				trgX = &GL.x(edg->target());
+				trgY = &GL.y(edg->target());
+				s = new Segment(srcX, srcY, trgX, trgY);
+				s->setSource(source);
+				s->setTarget(target);
+				s->assignGlobalNum(numSegment);
+				vectorSegmentBool[source->globalNum][target->globalNum] = numSegment;
+				vectorSegmentBool[target->globalNum][source->globalNum] = numSegment;
+				numSegment++;
+				vectorSegments.push_back(s);
+				vectorFaceSegment[CCE.leftFace(edg->adjSource())->index()].push_back(s);
+				vectorFaceSegment[CCE.rightFace(edg->adjSource())->index()].push_back(s);
+				edg = edg->succ();
 			}
-			f = f->succ();
-		}
 
-		// On verifie les données de stacking pour chaque nodebend
-		for (int i = 0; i < vectorNodeBends.size(); i++) {
-			if (vectorNodeBends[i]->isNode) {
-				vectorNodeBends[i]->initStackCheck();
-			}
-			else {
-				vectorNodeBends[i]->recalculateIsStacked();
+			std::cout << "Calculating stacking status of NodeBends..." << std::endl;
+			// On verifie les données de stacking pour chaque nodebend
+			for (int i = 0; i < vectorNodeBends.size(); i++) {
+				if (vectorNodeBends[i]->isNode) {
+					vectorNodeBends[i]->initStackCheck();
+				}
+				else {
+					vectorNodeBends[i]->recalculateIsStacked();
+				}
 			}
 		}
 	}
-	
+
 	// Bertault Layout
-	/*
-	GraphAttributes GA(G, GraphAttributes::nodeGraphics | GraphAttributes::edgeGraphics);
-	BertaultLayout BL;
-	node tmpN = G.firstNode();
-	while (tmpN != nullptr) {
-		GA.x(tmpN) = GL.x(tmpN);
-		GA.y(tmpN) = GL.y(tmpN);
-		tmpN = tmpN->succ();
+	if (useBertault) {
+		GraphAttributes GA(G, GraphAttributes::nodeGraphics | GraphAttributes::edgeGraphics);
+		BertaultLayout BL;
+		//BL.setImpred(true);
+		BL.iterno(G.numberOfNodes());
+		node tmpN = G.firstNode();
+		while (tmpN != nullptr) {
+			GA.x(tmpN) = GL.x(tmpN);
+			GA.y(tmpN) = GL.y(tmpN);
+			tmpN = tmpN->succ();
+		}
+		std::cout << "Debut Bertault Layout" << std::endl;
+		BL.call(GA);
+		std::cout << "Fin Bertault Layout" << std::endl;
+		tmpN = G.firstNode();
+		while (tmpN != nullptr) {
+			std::cout << "X: " << GA.x(tmpN) << " Y: " << GA.y(tmpN) << std::endl;
+			GL.x(tmpN) = GA.x(tmpN);
+			GL.y(tmpN) = GA.y(tmpN);
+			tmpN = tmpN->succ();
+		}
+		writeToJson("auto21-10BertInt.json", G, GL, gridWidth, gridHeight, maxBends);
+		writeToJsonDouble("auto21-10BertDouble.json", G, GA, gridWidth, gridHeight, maxBends);
+
 	}
-	BL.call(GA);
-	tmpN = G.firstNode();
-	while (tmpN != nullptr) {
-		std::cout << "X: " << GA.x(tmpN) << " Y: " << GA.y(tmpN) << std::endl;
-		GL.x(tmpN) = GA.x(tmpN);
-		GL.y(tmpN) = GA.y(tmpN);
-		tmpN = tmpN->succ();
+	if (upscaleGrid) {
+		gridWidth = maxX + 200;
+		gridHeight = maxY + 200;
 	}
-	writeToJson("auto21-10BertInt.json", G, GL, gridWidth, gridHeight, maxBends);
-	writeToJsonDouble("auto21-10BertDouble.json", G, GA, gridWidth, gridHeight, maxBends);
-	*/
-	gridWidth = maxX;
-	gridHeight = maxY;
 	minX = 0;
 	minY = 0;
+	std::cout << "Setup complete!" << std::endl;
 
 	// OpenGL
 	srand(static_cast<unsigned int>(time(NULL)));

@@ -47,6 +47,8 @@ int change_embedding_num = 0;
 bool save_all_embeddings = false;
 bool startGrilleDescente = false;
 bool autoRecuitAngle = false;
+bool show_intersection = false;
+bool show_segment_intersection = false;
 int selectedNodeBendNum;
 edge selectedEdge;
 adjEntry selectedAdj;
@@ -258,9 +260,15 @@ static void key_callback(GLFWwindow* window, int key, int scancode, int action, 
 		case GLFW_KEY_F6:
 			autoRecuitAngle = !autoRecuitAngle;
 			break;
+		case GLFW_KEY_F7:
+			show_intersection = true;
+			break;
+		case GLFW_KEY_F8:
+			show_segment_intersection = true;
+			break;
 		case GLFW_KEY_KP_ADD:
 			//if (currentZoom >= 30)
-				currentZoom = currentZoom - 30;
+			currentZoom = currentZoom - 30;
 			break;
 		case GLFW_KEY_KP_SUBTRACT:
 			currentZoom = currentZoom + 30;
@@ -490,9 +498,20 @@ void dispOpenGL(Graph& G, GridLayout& GL, const int gridWidth, const int gridHei
 			std::cout << "Ratio: " << calcEdgeLengthRatio() << " Variance: " << variance << std::endl;
 			show_ratio = false;
 		}
+		else if (show_intersection) {
+			std::cout << "Test intersection Edge..." << std::endl;
+			testEdgeIntersection(G, GL);
+			show_intersection = false;
+		}
+		else if (show_segment_intersection) {
+			std::cout << "Test intersection Segment..." << std::endl;
+			testSegmentIntersection(G, GL);
+			show_segment_intersection = false;
+		}
 		else if (save_current) {
 			writeToJson("currentSave.json", G, GL, gridWidth, gridHeight, maxBends);
 			std::cout << "Finished saving" << std::endl;
+			save_current = false;
 		}
 		else if (make_copy) {
 			graphCopy.clear();

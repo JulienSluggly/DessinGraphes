@@ -48,6 +48,9 @@ NodeBend* movableNodeBend(NodeBend* nb) {
 			tmpNb = nb->suivant;
 			while (tmpNb->isStuck()) {
 				tmpNb = tmpNb->suivant;
+				if (tmpNb->isNode) {
+					return tmpNb;
+				}
 			}
 		}
 	}
@@ -261,7 +264,7 @@ std::vector<Segment*> getTargetNodeBends(NodeBend* n) {
 	do {
 		if ((precedent->getX() != n->getX()) || (precedent->getY() != n->getY())) {
 			//std::cout << "Precedent x: " << *precedent->a_x << " y: " << *precedent->a_y << std::endl;
-			bendPrecSuiv.push_back(getSegmentFromNodeBends(precedent, last));
+			bendPrecSuiv.push_back(getSegmentFromNodeBendsV2(precedent, last));
 			found = true;
 		}
 		else {
@@ -280,7 +283,7 @@ std::vector<Segment*> getTargetNodeBends(NodeBend* n) {
 	do {
 		if ((suivant->getX() != n->getX()) || (suivant->getY() != n->getY())) {
 			//std::cout << "Suivant x: " << *suivant->a_x << " y: " << *suivant->a_y << std::endl;
-			bendPrecSuiv.push_back(getSegmentFromNodeBends(suivant, last));
+			bendPrecSuiv.push_back(getSegmentFromNodeBendsV2(suivant, last));
 			found = true;
 		}
 		else {
@@ -741,8 +744,7 @@ bool getLegalMoves(NodeBend* n, GridLayout& GL, ConstCombinatorialEmbedding& cce
 				Segment* sourceSeg;
 				// On recupere les coordonnées du target du segment
 				if (n->isNode) {
-					std::pair<NodeBend*, NodeBend*> tmpPair = getFirstSegmentInAdjEntry((*it), n);
-					sourceSeg = getSegmentFromNodeBends(tmpPair.first, tmpPair.second);
+					sourceSeg = getFirstSegmentInAdjEntryV2((*it), n);
 					source = sourceSeg->source;
 					target = sourceSeg->target;
 					//std::cout << "Target1 Coord x: " << segmentSourceTrgX << " y: " << segmentSourceTrgY << std::endl;
@@ -927,7 +929,7 @@ bool isMoveLegal(NodeBend* n, int deplacement, GridLayout& GL, ConstCombinatoria
 		// On recupere les coordonnées du target du segment
 		if (n->isNode) {
 			std::pair<NodeBend*, NodeBend*> tmpPair = getFirstSegmentInAdjEntry((*it), n);
-			sourceSeg = getSegmentFromNodeBends(tmpPair.first, tmpPair.second);
+			sourceSeg = getSegmentFromNodeBendsV2(tmpPair.first, tmpPair.second);
 			source = sourceSeg->source;
 			target = sourceSeg->target;
 			//std::cout << "Target1 Coord x: " << segmentSourceTrgX << " y: " << segmentSourceTrgY << std::endl;
@@ -1066,7 +1068,7 @@ bool isMoveLegal(NodeBend* n, int deplacement, GridLayout& GL, ConstCombinatoria
 std::pair<double, int> getSmallestAngleAroundNode(NodeBend* nb, GridLayout& GL) {
 	if (nb->isNode) {
 		if (nb->getNode()->degree() <= 1) {
-			return std::make_pair(360.0,1);
+			return std::make_pair(360.0, 1);
 		}
 		else {
 			ListPure<adjEntry> adjEntries;
@@ -1080,10 +1082,10 @@ std::pair<double, int> getSmallestAngleAroundNode(NodeBend* nb, GridLayout& GL) 
 			NodeBend* nb1;
 			NodeBend* nb2;
 			while (it.valid()) {
-				nb1 = getFirstNonStackedNodeBendInAdjEntry((*it),nb);
+				nb1 = getFirstNonStackedNodeBendInAdjEntry((*it), nb);
 				nb2 = getFirstNonStackedNodeBendInAdjEntry((*it)->cyclicPred(), nb);
 				angle = 360.0;
-				if (aGaucheInt(nb->getX(),nb->getY(),nb2->getX(), nb2->getY(), nb1->getX(), nb1->getY()) >= 0) {
+				if (aGaucheInt(nb->getX(), nb->getY(), nb2->getX(), nb2->getY(), nb1->getX(), nb1->getY()) >= 0) {
 					p13 = sqrt(pow(nb->getX() - nb1->getX(), 2) + pow(nb->getY() - nb1->getY(), 2));
 					p12 = sqrt(pow(nb->getX() - nb2->getX(), 2) + pow(nb->getY() - nb2->getY(), 2));
 					p23 = sqrt(pow(nb2->getX() - nb1->getX(), 2) + pow(nb2->getY() - nb1->getY(), 2));
@@ -1941,7 +1943,11 @@ bool singleRecuitSimuleNodeMoveAngle(NodeBend* n, int deplacement, GridLayout& G
 		int newX = n->getX() + vecteurDeplacements[deplacement].first;
 		int newY = n->getY() + vecteurDeplacements[deplacement].second;
 		std::pair<double, int> smallestAngleAfterMove = getSmallestAdjAngleAfterMove(n, GL, newX, newY);
-		if ((smallestAngleAfterMove.first > smallestAngle.first)||((smallestAngle.first == smallestAngleAfterMove.first)&&(smallestAngle.second > smallestAngleAfterMove.second))) {
+		if ((smallestAngleAfterMove.first > smallestAngle.first) || ((smallestAngle.first == smallestAngleAfterMove.first) && (smallestAngle.second > smallestAngleAfterMove.second))) {
+			return true;
+		}
+		// A PEUT ETRE ENLEVER, permet de separer les stackings de bend
+		if ((!n->isNode) && (isStackedInGrid(n))) {
 			return true;
 		}
 	}
@@ -2217,6 +2223,154 @@ void embedderCarte(Graph& G, GridLayout& GL) {
 		G.sort(nsrc, newOrder);
 		nsrc = nsrc->succ();
 	}
+}
+
+// Affichage dans la console le nombre d'intersection en faisant les tests sur tout les edge sans bend entre eux
+void testEdgeIntersection(Graph& G, GridLayout& GL) {
+	edge e1 = G.firstEdge();
+	int total = 0;
+	while (e1 != nullptr) {
+		edge e2 = G.firstEdge();
+		while (e2 != nullptr) {
+			int noeudCommunX, noeudCommunY, noeud1X, noeud1Y, noeud2X, noeud2Y;
+			bool aligne = false;
+			if (e1->index() != e2->index()) {
+				if (e1->source()->index() == e2->source()->index()) {
+					noeudCommunX = GL.x(e1->source());
+					noeudCommunY = GL.y(e1->source());
+					noeud1X = GL.x(e1->target());
+					noeud1Y = GL.y(e1->target());
+					noeud2X = GL.x(e2->target());
+					noeud2Y = GL.y(e2->target());
+					aligne = true;
+				}
+				else if (e1->source()->index() == e2->target()->index()) {
+					noeudCommunX = GL.x(e1->source());
+					noeudCommunY = GL.y(e1->source());
+					noeud1X = GL.x(e1->target());
+					noeud1Y = GL.y(e1->target());
+					noeud2X = GL.x(e2->source());
+					noeud2Y = GL.y(e2->source());
+					aligne = true;
+				}
+				else if (e1->target()->index() == e2->source()->index()) {
+					noeudCommunX = GL.x(e1->target());
+					noeudCommunY = GL.y(e1->target());
+					noeud1X = GL.x(e1->source());
+					noeud1Y = GL.y(e1->source());
+					noeud2X = GL.x(e2->target());
+					noeud2Y = GL.y(e2->target());
+					aligne = true;
+				}
+				else if (e1->target()->index() == e2->target()->index()) {
+					noeudCommunX = GL.x(e1->target());
+					noeudCommunY = GL.y(e1->target());
+					noeud1X = GL.x(e1->source());
+					noeud1Y = GL.y(e1->source());
+					noeud2X = GL.x(e2->source());
+					noeud2Y = GL.y(e2->source());
+					aligne = true;
+				}
+				if (aligne) {
+
+					// On teste si les 3 noeuds sont alignés
+					if (aGaucheInt(noeudCommunX, noeudCommunY, noeud1X, noeud1Y, noeud2X, noeud2Y) == 0) {
+						// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
+						if (!dansRectangle(noeud1X, noeud1Y, noeud2X, noeud2Y, noeudCommunX, noeudCommunY)) {
+							std::cout << "Intersection edge: " << e1->index() << " avec " << e2->index() << std::endl;
+							total++;
+						}
+					}
+				}
+				else {
+					// On regarde s'ils se croisent
+					if (seCroisent(GL.x(e1->source()), GL.y(e1->source()), GL.x(e1->target()), GL.y(e1->target()), GL.x(e2->source()), GL.y(e2->source()), GL.x(e2->target()), GL.y(e2->target()))) {
+						std::cout << "Intersection edge: " << e1->index() << " avec " << e2->index() << std::endl;
+						total++;
+					}
+				}
+			}
+			e2 = e2->succ();
+		}
+		e1 = e1->succ();
+	}
+
+	total = total / 2;
+	std::cout << "Total intersection: " << total << std::endl;
+}
+
+// Affichage dans la console le nombre d'intersection en faisant les tests sur tout les segments entre eux
+void testSegmentIntersection(Graph& G, GridLayout& GL) {
+	int total = 0;
+	for (int nums1 = 0; nums1 < vectorSegments.size(); nums1++) {
+		Segment* s1 = vectorSegments[nums1];
+		if (!s1->isNull()) {
+			for (int nums2 = 0; nums2 < vectorSegments.size(); nums2++) {
+				if (nums1 != nums2) {
+					Segment* s2 = vectorSegments[nums2];
+					if (!s2->isNull()) {
+						int noeudCommunX, noeudCommunY, noeud1X, noeud1Y, noeud2X, noeud2Y;
+						bool aligne = false;
+						if ((s1->source->globalNum == s2->source->globalNum) || (s1->source->isAutorisedStacked(s2->source))) {
+							noeudCommunX = s1->source->getX();
+							noeudCommunY = s1->source->getY();
+							noeud1X = s1->target->getX();
+							noeud1Y = s1->target->getY();
+							noeud2X = s2->target->getX();
+							noeud2Y = s2->target->getY();
+							aligne = true;
+						}
+						else if ((s1->source->globalNum == s2->target->globalNum) || (s1->source->isAutorisedStacked(s2->target))) {
+							noeudCommunX = s1->source->getX();
+							noeudCommunY = s1->source->getY();
+							noeud1X = s1->target->getX();
+							noeud1Y = s1->target->getY();
+							noeud2X = s2->source->getX();
+							noeud2Y = s2->source->getY();
+							aligne = true;
+						}
+						else if ((s1->target->globalNum == s2->source->globalNum) || (s1->target->isAutorisedStacked(s2->source))) {
+							noeudCommunX = s1->target->getX();
+							noeudCommunY = s1->target->getY();
+							noeud1X = s1->source->getX();
+							noeud1Y = s1->source->getY();
+							noeud2X = s2->target->getX();
+							noeud2Y = s2->target->getY();
+							aligne = true;
+						}
+						else if ((s1->target->globalNum == s2->target->globalNum) || (s1->target->isAutorisedStacked(s2->target))) {
+							noeudCommunX = s1->target->getX();
+							noeudCommunY = s1->target->getY();
+							noeud1X = s1->source->getX();
+							noeud1Y = s1->source->getY();
+							noeud2X = s2->source->getX();
+							noeud2Y = s2->source->getY();
+							aligne = true;
+						}
+						if (aligne) {
+							// On teste si les 3 noeuds sont alignés
+							if (aGaucheInt(noeudCommunX, noeudCommunY, noeud1X, noeud1Y, noeud2X, noeud2Y) == 0) {
+								// On teste si le noeud en commun ne se trouve pas entre les deux autres noeuds, dans ce cas intersection
+								if (!dansRectangle(noeud1X, noeud1Y, noeud2X, noeud2Y, noeudCommunX, noeudCommunY)) {
+									std::cout << "Intersection edge avec commun: " << s1->globalNum << " avec " << s2->globalNum << std::endl;
+									total++;
+								}
+							}
+						}
+						else {
+							// On regarde s'ils se croisent
+							if (seCroisent(s1->source->getX(), s1->source->getY(), s1->target->getX(), s1->target->getY(), s2->source->getX(), s2->source->getY(), s2->target->getX(), s2->target->getY())) {
+								std::cout << "Intersection edge: " << s1->globalNum << " avec " << s2->globalNum << std::endl;
+								total++;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	total = total / 2;
+	std::cout << "Total intersection: " << total << std::endl;
 }
 
 #endif
