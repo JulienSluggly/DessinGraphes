@@ -39,20 +39,21 @@ int main() {
 	string file = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/embeddings/auto21-8/" + nom_fichier + ".json";
 	//string file = "D:/The World/Cours/M1S2/Graphe/GitHub/ProjetGrapheM1-BinaryHeap/ProjetGrapheM1/bestResult.json";
 
-	bool useOpenGL = false;
+	bool useOpenGL = true;
 	bool useBertault = false;
 	bool planarize = false;
 	bool displayNodeBends = true;
 	bool useNodeBends = true;
 	bool useAugmenter = false;
 	bool upscaleGrid = true;
+	int margeGrid = 300;
 
 	std::cout << "File: " << file << std::endl;
-	string tmpFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC0Ordered.json";
-	//string tmpFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/bestResult.json";
+	//string tmpFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC0Ordered.json";
+	string tmpFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/bestResult2.json";
 	//readFromJsonDoubleUpscale(tmpFile, G, GL, gridWidth, gridHeight, maxBends);
-	//readFromJson(tmpFile, G, GL, gridWidth, gridHeight, maxBends);
-	readFromJsonMove(tmpFile, 300, 300, G, GL, gridWidth, gridHeight, maxBends);
+	readFromJson(tmpFile, G, GL, gridWidth, gridHeight, maxBends);
+	//readFromJsonMove(tmpFile, margeGrid, margeGrid, G, GL, gridWidth, gridHeight, maxBends);
 	//string combineFile = "D:/The World/Cours/M1S2/Graphe/Projet/DessinGraphe/tmp/auto21-10_MaxFace2_CC";
 	//combinesFromJson(combineFile,61, G, GL, gridWidth, gridHeight, maxBends);
 	//writeToJson("output.json", G, GL, gridWidth, gridHeight, maxBends);
@@ -142,10 +143,10 @@ int main() {
 
 	if (useNodeBends) {
 		std::cout << "Populating global vectors..." << std::endl;
-		posVectorNodeBend.resize(maxX + 101);
+		posVectorNodeBend.resize(maxX + margeGrid + 1);
 		// Remplissage des tableaux globaux
-		for (int i = 0; i <= maxX + 100; i++) {
-			posVectorNodeBend[i].resize(maxY + 101);
+		for (int i = 0; i <= maxX + margeGrid; i++) {
+			posVectorNodeBend[i].resize(maxY + margeGrid + 1);
 		}
 	}
 
@@ -336,8 +337,8 @@ int main() {
 
 	}
 	if (upscaleGrid) {
-		gridWidth = maxX + 200;
-		gridHeight = maxY + 200;
+		gridWidth = maxX + margeGrid;
+		gridHeight = maxY + margeGrid;
 	}
 	minX = 0;
 	minY = 0;
