@@ -24,7 +24,7 @@
 #endif
 
 void initCPUSet() {
-	omp_set_nested(0);
+	omp_set_nested(1);
     int num_threads = ::omp_get_max_threads();
     CPU_ZERO(&cpuset);
     for (int i = 0; i < num_threads; i++) {
@@ -199,10 +199,13 @@ int main() {
 	stopGprofProfiler(useProfiler);
 	printDebugData(G,tempsBest,bestIteration,lastIteration,nombreRecuit,start,finPlacement);
 
+	#ifdef OPENGL_INSTALLED
 	bool useOpenGL = true;
 	if (useOpenGL) {
 		std::cout << "Grid: " << G.gridWidth << " " << G.gridHeight << std::endl;
 		dispOpenGL(G,G.gridWidth,G.gridHeight,useCoordReel);
 	}
+	#endif
+	
 	return 0;
 }

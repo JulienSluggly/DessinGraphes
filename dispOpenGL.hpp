@@ -1248,6 +1248,7 @@ void dispOpenGL(Graphe& G, int w, int h, bool useReelCoord=false) {
 	glfwDestroyWindow(window);
 	glfwTerminate();
 }
+
 #else
 	class Graphe;
 	void dispOpenGL(Graphe& G, int w, int h, int mx, int my) {

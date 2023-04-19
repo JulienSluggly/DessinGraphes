@@ -92,7 +92,7 @@ void customRecuitFlottants() {
 void customRecuitFlottantsAllRuns() {
 	fillLogsVector();
 	std::vector<std::string> graphVector;
-	for (int i = 5; i <= 12; i++) {
+	for (int i = 1; i <= 12; i++) {
 		graphVector.push_back("graph-" + std::to_string(i) + "-input");
 	}
 	int nthreads, tid;
