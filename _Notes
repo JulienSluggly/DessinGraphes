@@ -1,0 +1,86 @@
+Liste de marque avec toutes les autres aretes
+
+Gagner de l'espace memoire en remplacant les vecteurs pas toujours utilisés par des pointeurs de vecteurs
+
+Moyenne sur les crossing number?
+
+Iterative edge insertion and optimize at each step the number of crossings
+
+Selection de noeud pas au hasard mais ordonnée par score? ordonné, avant puis arriere?
+
+Tester AT&T, Triangulation+X
+
+Faire une version ogdf placement au plus proche qui place les voisins d'un noeud au plus proche recursivement parcour en largeur?
+
+Refaire le recuit score en intégrant la grille
+
+Faire des tests sur le placement de depart avec stressMin en variant edgeCost, comparer avec placement aleatoire et glouton
+
+Variante Stress Maj qui minimise le nombre d'intersection au moment de la recherche du plus proche.
+
+n*sqrt(2) pire cas recherche, prendre la vraie longueur et chercher dans une profondeur egale a la longueur.
+
+Regarder si il est possible d'implementer l'algo de planarisation d'ogdf avec nos contraintes
+
+Restructurer le code genetique pour les appels des differentes fonctions
+
+Genetique qui place n/2 noeud iterativement et produit deux enfants
+
+Optimiser la taille de la grille carre pour le stress Maj.
+
+Definir la limite d'emplacement pour utiliser la grille dans le stress Maj.
+
+Ameliorer le temps d'execution du stressMaj et variantes
+
+Changement de repere, ACP
+
+Trouver la meilleur methode a appliquer apres le stress maj
+
+Retester toutes les methodes sur tout les graphes 
+
+Parseur de fichier sans librairie json
+
+calcul ecart type
+
+recalculer plus efficacement les matrices quand il y a changement de edgeCost
+
+Retester avec variante nextIterationDelay
+
+Spring Embedding, Graphviz twopi
+
+Implementer fast multipole multilevel avec nos contraintes?
+
+ogdfFMMM suivi du stressMin?
+
+Restructurer les methodes de graphe, ne garder en methode de classe que celle qui font sens
+
+Implementer le recuit only improve et best deplacement a la fin des 1h d'execution
+
+multithreading recuit, pool threading
+
+retest tres haute temperature?
+
+Tableau de marque pour le calcul du score.
+
+pour le multithreading recuit:
+
+Si emplacement choisi est disponible:
+    Creer un noeud temporaire au nouvel emplacement et marquer les anciennes aretes et les nouvelles.
+Sinon:
+    Creer deux noeuds temporaires aux autres emplacements et attribuer au meme emplacement(ou a un temporaire?) et marquer les anciennes et nouvelles aretes.
+On met a jour les cellules avec les nouvelles aretes.
+Le premier Thread ne prend en compte que les aretes communes et anciennes.
+Le deuxieme Thread ne prend en compte que les aretes communes et nouvelles.
+Si on garde le nouvel emplacement: On remplace dans le tableau l'emplacement du noeud par le nouveau.
+On met a jour la grille en supprimant les nouvelles aretes.
+
+Adapter code aux coord entieres sans emplacement
+
+A FIX RECUIT THREAD SELECTION
+same seed different results ? (race condition a l'improve si egalité)
+
+Remplacer les variables debug par des define.
+
+Faire une version recuit optimisée sans aucun check de parametre
+
+Sauvegarder les amelioration avec timestamps

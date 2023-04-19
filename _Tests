@@ -1,0 +1,7 @@
+En cours:
+startRunsForAllSlots(key,-1,"Stress Dyn Stress","Aucun",{{}},tid);
+startRunsForAllSlots(key,-1,"Stress Dyn Cross","Aucun",{{}},tid);
+startRunsForAllSlots(key,-1,"Stress Dyn Stress","Rerecuit Simule Grille TME Cool Delay",{{}},tid);
+startRunsForAllSlots(key,-1,"Stress Dyn Cross","Rerecuit Simule Grille TME Cool Delay",{{}},tid);
+startRunsForAllSlots(key,-1,"Stress Dyn Stress","Rerecuit Simule Grille TME Cool Delay Temp",{{}},tid);
+startRunsForAllSlots(key,-1,"Stress Dyn Cross","Rerecuit Simule Grille TME Cool Delay Temp",{{}},tid);

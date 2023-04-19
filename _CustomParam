@@ -1,0 +1,22 @@
+CustomParams:
+
+0=Tournoi Multiple Emplacement {0,x,x}
+1=Stress Majorization EdgeCost {1,x}
+2=Stress Majorization Iterations {2,x}
+3=Delai {3,x,x}
+4=StressMin Delai {4,x}
+5=StressMin Partie Graphe {5,x}
+6=Box Depart Coeff {6,x}
+7=Box Arrive Coeff {7,x}
+8=Température de départ 't' {8,x}
+9=Valeur de Refroidissement 'cool' {9,x}
+10=Taille Grille {12,x} (int)(ceil(sqrt(G._noeuds.size()))*param[1])**;
+11=Taille Grille {11,x} (int)(ceil(sqrt(G._aretes.size()))*param[1])**;
+12=Coeff Improve {12,x}
+13=Refroidissement de la rechauffe 'coolt' {10,x}
+14=Seuil du recuit simule 'seuil' {11,x}
+15=
+
+Historique:
+
+0=Deplacement Noeud Reel {0,idNode,oldCoordX,oldCoordY}
